@@ -20,10 +20,12 @@ import { QueueConsumer } from '@polkadot/react-components/Status/Context';
 import Queue from '@polkadot/react-components/Status/Queue';
 
 import Apps from './Apps';
+import { overrideDefaultSettings } from './overrideDefaultSettings';
 
 const rootId = 'root';
 const rootElement = document.getElementById(rootId);
 
+overrideDefaultSettings();
 // we split here so that both these forms are allowed
 //  - http://localhost:3000/?rpc=wss://substrate-rpc.parity.io/#/explorer
 //  - http://localhost:3000/#/explorer?rpc=wss://substrate-rpc.parity.io

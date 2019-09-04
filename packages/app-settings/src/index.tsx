@@ -77,4 +77,5 @@ class App extends React.PureComponent<Props, State> {
   }
 }
 
+export * from './akroNodes';
 export default translate(App);

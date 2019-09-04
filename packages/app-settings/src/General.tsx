@@ -32,17 +32,12 @@ class General extends React.PureComponent<Props, State> {
     const isCustomNode = akroNodes.reduce((isCustomNode, { value }): boolean => {
       return isCustomNode && value !== settings.apiUrl;
     }, true);
-    const isDefaultNode = uiSettings.availableNodes.reduce((isDefaultNode, { value }): boolean => {
-      return isDefaultNode || value === settings.apiUrl;
-    }, false);
 
     this.state = {
       isCustomNode,
       isUrlValid: this.isValidUrl(settings.apiUrl),
-      settings: isDefaultNode ? { ...settings, apiUrl: akroNodes[0].value } : settings
+      settings
     };
-
-    isDefaultNode && this.saveAndReload();
   }
 
   public render (): React.ReactNode {
