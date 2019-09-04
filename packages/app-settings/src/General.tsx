@@ -12,6 +12,7 @@ import { ActionStatus } from '@polkadot/react-components/Status/types';
 import uiSettings from '@polkadot/ui-settings';
 
 import translate from './translate';
+import { akroNodes } from './akroNodes';
 
 type Props = AppProps & I18nProps & {
   onStatusChange: (status: ActionStatus) => void;
@@ -28,15 +29,20 @@ class General extends React.PureComponent<Props, State> {
     super(props);
 
     const settings = uiSettings.get();
-    const isCustomNode = uiSettings.availableNodes.reduce((isCustomNode, { value }): boolean => {
+    const isCustomNode = akroNodes.reduce((isCustomNode, { value }): boolean => {
       return isCustomNode && value !== settings.apiUrl;
     }, true);
+    const isDefaultNode = uiSettings.availableNodes.reduce((isDefaultNode, { value }): boolean => {
+      return isDefaultNode || value === settings.apiUrl;
+    }, false);
 
     this.state = {
       isCustomNode,
       isUrlValid: this.isValidUrl(settings.apiUrl),
-      settings
+      settings: isDefaultNode ? { ...settings, apiUrl: akroNodes[0].value } : settings
     };
+
+    isDefaultNode && this.saveAndReload();
   }
 
   public render (): React.ReactNode {
@@ -128,7 +134,7 @@ class General extends React.PureComponent<Props, State> {
                   defaultValue={apiUrl}
                   label={t('remote node/endpoint to connect to')}
                   onChange={this.onChangeApiUrl}
-                  options={uiSettings.availableNodes}
+                  options={akroNodes}
                 />
               )
           }
@@ -182,7 +188,7 @@ class General extends React.PureComponent<Props, State> {
         ...settings,
         apiUrl: isCustomNode
           ? settings.apiUrl
-          : uiSettings.availableNodes[0].value
+          : akroNodes[0].value
       }
     }));
   }

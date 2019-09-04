@@ -21,6 +21,7 @@ import { Text } from '@polkadot/types';
 import { formatBalance, isTestChain } from '@polkadot/util';
 
 import ApiContext from './ApiContext';
+import { akroTypes } from './akroTypes';
 
 let api: ApiPromise;
 
@@ -58,7 +59,7 @@ export default class Api extends React.PureComponent<Props, State> {
     const signer = new ApiSigner(queuePayload, queueSetTxStatus);
 
     const setApi = (provider: ProviderInterface): void => {
-      api = new ApiPromise({ provider, signer });
+      api = new ApiPromise({ provider, signer, types: akroTypes });
 
       this.setState({ api }, (): void => {
         this.subscribeEvents();
@@ -67,7 +68,7 @@ export default class Api extends React.PureComponent<Props, State> {
     const setApiUrl = (url: string = defaults.WS_URL): void =>
       setApi(new WsProvider(url));
 
-    api = new ApiPromise({ provider, signer });
+    api = new ApiPromise({ provider, signer, types: akroTypes });
 
     this.state = {
       api,
