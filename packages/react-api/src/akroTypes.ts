@@ -6,6 +6,8 @@ export const akroTypes: RegistryTypes = {
   MemberId: 'u64',
   ProposalId: 'u64',
   VotesCount: 'MemberId',
+  Days: 'u32',
+  Rate: 'u32',
   Dao: {
     address: 'AccountId',
     name: 'Text',
@@ -16,7 +18,9 @@ export const akroTypes: RegistryTypes = {
     _enum: {
       EmptyAction: null,
       AddMember: 'AccountId',
-      RemoveMember: 'AccountId'
+      RemoveMember: 'AccountId',
+      GetLoan: '(Vec<u8>, Days, Rate, Balance)',
+      Withdraw: '(AccountId, Balance, Vec<u8>)'
     }
   } as any, // because RegistryTypes is wrong
   Proposal: {
@@ -24,7 +28,7 @@ export const akroTypes: RegistryTypes = {
     action: 'Action',
     open: 'bool',
     voting_deadline: 'BlockNumber',
-    yes_count: 'MemberId',
-    no_count: 'MemberId'
+    yes_count: 'VotesCount',
+    no_count: 'VotesCount'
   }
 };
