@@ -27,6 +27,7 @@ export const akroTypes: RegistryTypes = {
     dao_id: 'DaoId',
     action: 'Action',
     open: 'bool',
+    accepted: 'bool',
     voting_deadline: 'BlockNumber',
     yes_count: 'VotesCount',
     no_count: 'VotesCount'
