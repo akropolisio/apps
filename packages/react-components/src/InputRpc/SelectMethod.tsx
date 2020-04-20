@@ -1,50 +1,50 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
-import { RpcMethod } from '@polkadot/jsonrpc/types';
+import { DefinitionRpcExt } from '@polkadot/types/types';
 import { DropdownOptions } from '../util/types';
 import { BareProps } from '../types';
 
 import React from 'react';
 
-import map from '@polkadot/jsonrpc';
+import jsonrpc from '@polkadot/types/interfaces/jsonrpc';
 
 import Dropdown from '../Dropdown';
 import { classes } from '../util';
 
 interface Props extends BareProps {
   isError?: boolean;
-  onChange: (value: RpcMethod) => void;
+  onChange: (value: DefinitionRpcExt) => void;
   options: DropdownOptions;
-  value: RpcMethod;
+  value: DefinitionRpcExt;
 }
 
-export default class SelectMethod extends React.PureComponent<Props> {
-  public render (): React.ReactNode {
-    const { className, isError, onChange, options, style, value } = this.props;
-
-    if (!options.length) {
-      return null;
-    }
-
-    return (
-      <Dropdown
-        className={classes('ui--DropdownLinked-Items', className)}
-        isError={isError}
-        onChange={onChange}
-        options={options}
-        style={style}
-        transform={this.transform}
-        value={value.method}
-        withLabel={false}
-      />
-    );
-  }
-
-  private transform = (method: string): RpcMethod => {
-    const { value } = this.props;
-
-    return map[value.section].methods[method];
-  }
+function transform ({ value: { section } }: Props): (method: string) => DefinitionRpcExt {
+  return function (method: string): DefinitionRpcExt {
+    return jsonrpc[section][method];
+  };
 }
+
+function SelectMethod (props: Props): React.ReactElement<Props> | null {
+  const { className, isError, onChange, options, style, value } = props;
+
+  if (!options.length) {
+    return null;
+  }
+
+  return (
+    <Dropdown
+      className={classes('ui--DropdownLinked-Items', className)}
+      isError={isError}
+      onChange={onChange}
+      options={options}
+      style={style}
+      transform={transform(props)}
+      value={value.method}
+      withLabel={false}
+    />
+  );
+}
+
+export default React.memo(SelectMethod);

@@ -1,51 +1,48 @@
-// Copyright 2017-2019 @polkadot/app-extrinsics authors & contributors
+// Copyright 2017-2020 @polkadot/app-extrinsics authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
-import { Props as BaseProps, RawParam } from '@polkadot/react-params/types';
-import { ApiProps } from '@polkadot/react-api/types';
+import { Props, RawParam } from '@polkadot/react-params/types';
 
-import React from 'react';
-import { createType } from '@polkadot/types';
-import { withApi } from '@polkadot/react-api';
+import React, { useCallback } from 'react';
+import { registry } from '@polkadot/react-api';
+import { useApi } from '@polkadot/react-hooks';
 
 import ExtrinsicDisplay from './Extrinsic';
 
-type Props = ApiProps & BaseProps;
+function ProposalDisplay ({ className, isDisabled, isError, label, onChange, onEnter, onEscape, style, withLabel }: Props): React.ReactElement<Props> {
+  const { apiDefaultTxSudo } = useApi();
+  const _onChange = useCallback(
+    ({ isValid, value }: RawParam): void => {
+      let proposal = null;
 
-class ProposalDisplay extends React.PureComponent<Props> {
-  public render (): React.ReactNode {
-    const { apiDefaultTxSudo, className, isDisabled, isError, label, onEnter, style, withLabel } = this.props;
+      if (isValid && value) {
+        proposal = registry.createType('Proposal', value);
+      }
 
-    return (
-      <ExtrinsicDisplay
-        className={className}
-        defaultValue={apiDefaultTxSudo}
-        isDisabled={isDisabled}
-        isError={isError}
-        isPrivate
-        label={label}
-        onChange={this.onChange}
-        onEnter={onEnter}
-        style={style}
-        withLabel={withLabel}
-      />
-    );
-  }
+      onChange && onChange({
+        isValid,
+        value: proposal
+      });
+    },
+    [onChange]
+  );
 
-  private onChange = ({ isValid, value }: RawParam): void => {
-    const { onChange } = this.props;
-    let proposal = null;
-
-    if (isValid && value) {
-      proposal = createType('Proposal', value);
-    }
-
-    onChange && onChange({
-      isValid,
-      value: proposal
-    });
-  }
+  return (
+    <ExtrinsicDisplay
+      className={className}
+      defaultValue={apiDefaultTxSudo}
+      isDisabled={isDisabled}
+      isError={isError}
+      isPrivate
+      label={label}
+      onChange={_onChange}
+      onEnter={onEnter}
+      onEscape={onEscape}
+      style={style}
+      withLabel={withLabel}
+    />
+  );
 }
 
-export default withApi(ProposalDisplay);
+export default React.memo(ProposalDisplay);

@@ -1,4 +1,4 @@
-// Copyright 2017-2019 @polkadot/app-democracy authors & contributors
+// Copyright 2017-2020 @polkadot/app-democracy authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
@@ -7,10 +7,11 @@ import { Proposal } from '@polkadot/types/interfaces';
 import BN from 'bn.js';
 import React from 'react';
 import styled from 'styled-components';
-import { GenericCall } from '@polkadot/types';
-import { formatNumber } from '@polkadot/util';
+import { registry } from '@polkadot/react-api';
+import { formatNumber, isString } from '@polkadot/util';
 
 import Call from './Call';
+import Expander from './Expander';
 import Inset, { InsetProps } from './Inset';
 import TreasuryProposal from './TreasuryProposal';
 import { isTreasuryProposalVote } from './util';
@@ -21,15 +22,14 @@ interface Props {
   insetProps?: Partial<InsetProps>;
   proposal?: Proposal | null;
   idNumber: BN | number | string;
-  isCollapsible?: boolean;
   withLinks?: boolean;
   expandNested?: boolean;
 }
 
 export const styles = `
-  .ui--ProposedAction-extrinsic {
-    margin-bottom: 1rem;
+  margin-bottom: 1rem;
 
+  .ui--ProposedAction-extrinsic {
     .ui--Params-Content {
       padding-left: 0;
     }
@@ -40,82 +40,62 @@ export const styles = `
   }
 `;
 
-class ProposedAction extends React.PureComponent<Props> {
-  public render (): React.ReactNode {
-    const { asInset, insetProps, isCollapsible, proposal, withLinks, expandNested } = this.props;
+function ProposedAction ({ asInset, className, expandNested, idNumber, insetProps, proposal, withLinks }: Props): React.ReactElement<Props> {
+  const stringId = isString(idNumber)
+    ? idNumber
+    : formatNumber(idNumber);
 
-    const idNumber = typeof this.props.idNumber === 'string'
-      ? this.props.idNumber
-      : formatNumber(this.props.idNumber);
+  if (!proposal) {
+    return (
+      <h3>#{stringId}</h3>
+    );
+  }
 
-    if (!proposal) {
-      return (
-        <h3>#{idNumber}</h3>
-      );
-    }
+  const { meta, method, section } = registry.findMetaCall(proposal.callIndex);
 
-    const { meta, method, section } = GenericCall.findFunction(proposal.callIndex);
-
-    const header = `#${idNumber}: ${section}.${method}`;
-    const documentation = (meta && meta.documentation)
-      ? (
-        <summary>{meta.documentation.join(' ')}</summary>
-      )
-      : null;
-    const params = (isTreasuryProposalVote(proposal) && expandNested) ? (
+  const header = `#${stringId}: ${section}.${method}`;
+  const documentation = meta?.documentation
+    ? (
+      <summary>{meta.documentation.join(' ')}</summary>
+    )
+    : null;
+  const params = (isTreasuryProposalVote(proposal) && expandNested)
+    ? (
       <TreasuryProposal
-        className='ui--ProposedAction-extrinsic'
         asInset={withLinks}
         insetProps={{
-          withTopMargin: true,
           withBottomMargin: true,
+          withTopMargin: true,
           ...(withLinks ? { href: '/treasury' } : {})
         }}
         proposalId={proposal.args[0].toString()}
       />
-    ) : (
-      <Call
-        className='ui--ProposedAction-extrinsic'
-        value={proposal}
-      />
-    );
+    )
+    : <Call value={proposal} />;
 
-    if (asInset) {
-      return (
-        <Inset
-          header={header}
-          isCollapsible
-          {...insetProps}
-        >
-          <>
-            {documentation}
-            {params}
-          </>
-        </Inset>
-      );
-    }
-
+  if (asInset) {
     return (
-      <>
-        <h3>{header}</h3>
-        {isCollapsible
-          ? (
-            <details>
-              {documentation}
-              {params}
-            </details>
-          )
-          : (
-            <>
-              <details>
-                {documentation}
-              </details>
-              {params}
-            </>
-          )}
-      </>
+      <Inset
+        header={header}
+        isCollapsible
+        {...insetProps}
+      >
+        <>
+          {documentation}
+          {params}
+        </>
+      </Inset>
     );
   }
+
+  return (
+    <div className={`ui--ProposedAction ${className}`}>
+      <h3>{header}</h3>
+      <Expander summaryMeta={meta}>
+        {params}
+      </Expander>
+    </div>
+  );
 }
 
-export default styled(ProposedAction as React.ComponentClass<Props>)`${styles}`;
+export default React.memo(styled(ProposedAction)`${styles}`);

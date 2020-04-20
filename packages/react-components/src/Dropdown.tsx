@@ -1,10 +1,11 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
 import { BareProps } from './types';
 
-import React from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import styled from 'styled-components';
 import SUIButton from 'semantic-ui-react/dist/commonjs/elements/Button/Button';
 import SUIDropdown, { DropdownProps } from 'semantic-ui-react/dist/commonjs/modules/Dropdown/Dropdown';
 import { isUndefined } from '@polkadot/util';
@@ -20,6 +21,7 @@ interface Props<Option> extends BareProps {
   isButton?: boolean;
   isDisabled?: boolean;
   isError?: boolean;
+  isFull?: boolean;
   isMultiple?: boolean;
   label?: React.ReactNode;
   labelExtra?: React.ReactNode;
@@ -38,108 +40,133 @@ interface Props<Option> extends BareProps {
   withLabel?: boolean;
 }
 
-export default class Dropdown<Option> extends React.PureComponent<Props<Option>> {
-  // Trigger the update on mount - ensuring that the onChange (as described below)
-  // is trigerred.
-  public componentDidMount (): void {
-    this.componentDidUpdate({} as unknown as Props<Option>);
-  }
+export type IDropdown<Option> = React.ComponentType<Props<Option>> & {
+  Header: React.ComponentType<{ content: React.ReactNode }>;
+}
 
-  // Here we update the component user with the initial value of the dropdown. In a number of
-  // these (e.g. Accounts) the list of available values are managed by the component itself,
-  // and there are defaults set (i.e. for accounts the last one used)
-  public componentDidUpdate (prevProps: Props<Option>): void {
-    const { defaultValue, value } = this.props;
-    const startValue = isUndefined(value)
-      ? defaultValue
-      : value;
-    const prevStart = isUndefined(prevProps.value)
-      ? prevProps.defaultValue
-      : prevProps.value;
+function BaseDropdown<Option> ({ allowAdd = false, className, defaultValue, dropdownClassName, help, isButton, isDisabled, isError, isFull, isMultiple, label, labelExtra, onAdd, onBlur, onChange, onClose, onSearch, options, placeholder, renderLabel, searchInput, style, transform, value, withEllipsis, withLabel }: Props<Option>): React.ReactElement<Props<Option>> {
+  const lastUpdate = useRef<string>('');
+  const [stored, setStored] = useState<any>();
 
-    if (startValue !== prevStart) {
-      this.onChange(null as any, {
-        value: startValue
-      });
+  const _setStored = useCallback(
+    (value: any): void => {
+      const json = JSON.stringify({ v: value });
+
+      if (lastUpdate.current !== json) {
+        lastUpdate.current = json;
+
+        setStored(value);
+
+        onChange && onChange(
+          transform
+            ? transform(value)
+            : value
+        );
+      }
+    },
+    [onChange, transform]
+  );
+
+  useEffect((): void => {
+    _setStored(isUndefined(value) ? defaultValue : value);
+  }, [_setStored, defaultValue, value]);
+
+  const _onAdd = useCallback(
+    (_: React.SyntheticEvent<HTMLElement>, { value }: DropdownProps): void =>
+      onAdd && onAdd(value),
+    [onAdd]
+  );
+
+  const _onChange = useCallback(
+    (_: React.SyntheticEvent<HTMLElement> | null, { value }: DropdownProps): void =>
+      _setStored(value),
+    [_setStored]
+  );
+
+  const dropdown = (
+    <SUIDropdown
+      allowAdditions={allowAdd}
+      button={isButton}
+      className={dropdownClassName}
+      compact={isButton}
+      disabled={isDisabled}
+      error={isError}
+      floating={isButton}
+      multiple={isMultiple}
+      onAddItem={_onAdd}
+      onBlur={onBlur}
+      onChange={_onChange}
+      onClose={onClose}
+      options={options}
+      placeholder={placeholder}
+      renderLabel={renderLabel}
+      search={onSearch || allowAdd}
+      searchInput={searchInput}
+      selection
+      value={stored}
+    />
+  );
+
+  return isButton
+    ? (
+      <SUIButton.Group primary>
+        {dropdown}
+      </SUIButton.Group>
+    )
+    : (
+      <Labelled
+        className={classes('ui--Dropdown', className)}
+        help={help}
+        isFull={isFull}
+        label={label}
+        labelExtra={labelExtra}
+        style={style}
+        withEllipsis={withEllipsis}
+        withLabel={withLabel}
+      >
+        {dropdown}
+      </Labelled>
+    );
+}
+
+const Dropdown = React.memo(styled(BaseDropdown)`
+  .ui--Dropdown-item {
+    position: relative;
+    white-space: nowrap;
+
+    .ui--Dropdown-icon,
+    .ui--Dropdown-name {
+      display: inline-block;
+    }
+
+    .ui--Dropdown-icon {
+      height: 32px;
+      left: 0;
+      position: absolute;
+      top: -9px;
+      width: 32px;
+    }
+
+    .ui--Dropdown-name {
+      margin-left: 3rem;
     }
   }
 
-  public render (): React.ReactNode {
-    const { allowAdd = false, className, defaultValue, dropdownClassName, help, isButton, isDisabled, isError, isMultiple, label, labelExtra, onSearch, options, placeholder, renderLabel, searchInput, style, withEllipsis, withLabel, value } = this.props;
-    const dropdown = (
-      <SUIDropdown
-        allowAdditions={allowAdd}
-        className={dropdownClassName}
-        button={isButton}
-        compact={isButton}
-        disabled={isDisabled}
-        error={isError}
-        floating={isButton}
-        multiple={isMultiple}
-        onAddItem={this.onAddItem}
-        onBlur={this.onBlur}
-        onChange={this.onChange}
-        onClose={this.onClose}
-        options={options}
-        placeholder={placeholder}
-        renderLabel={renderLabel}
-        search={onSearch || allowAdd}
-        searchInput={searchInput}
-        selection
-        value={
-          isUndefined(value)
-            ? defaultValue
-            : value
-        }
-      />
-    );
+  .ui.selection.dropdown {
+    > .text > .ui--Dropdown-item {
+      .ui--Dropdown-icon {
+        left: -2.6rem;
+        top: -1.15rem;
+        opacity: 1;
+      }
 
-    return isButton
-      ? (
-        <SUIButton.Group primary>
-          {dropdown}
-        </SUIButton.Group>
-      )
-      : (
-        <Labelled
-          className={classes('ui--Dropdown', className)}
-          help={help}
-          label={label}
-          labelExtra={labelExtra}
-          style={style}
-          withEllipsis={withEllipsis}
-          withLabel={withLabel}
-        >
-          {dropdown}
-        </Labelled>
-      );
+      .ui--Dropdown-name {
+        margin-left: 0;
+      }
+    }
   }
+`) as unknown as IDropdown<any>;
 
-  private onAddItem = (_: React.SyntheticEvent<HTMLElement>, { value }: DropdownProps): void => {
-    const { onAdd } = this.props;
+(Dropdown as any).Header = SUIDropdown.Header;
 
-    onAdd && onAdd(value);
-  }
-
-  private onBlur = (): void => {
-    const { onBlur } = this.props;
-
-    onBlur && onBlur();
-  }
-
-  private onChange = (_: React.SyntheticEvent<HTMLElement>, { value }: DropdownProps): void => {
-    const { onChange, transform } = this.props;
-
-    onChange && onChange(
-      transform
-        ? transform(value)
-        : value
-    );
-  }
-
-  private onClose = (): void => {
-    const { onClose } = this.props;
-
-    onClose && onClose();
-  }
-}
+export default Dropdown;

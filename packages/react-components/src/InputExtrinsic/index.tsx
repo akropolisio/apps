@@ -1,125 +1,88 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
-import { CallFunction } from '@polkadot/types/types';
-import { ApiProps } from '@polkadot/react-api/types';
-import { I18nProps } from '../types';
+import { SubmittableExtrinsicFunction } from '@polkadot/api/types';
 import { DropdownOptions } from '../util/types';
 
-import './InputExtrinsic.css';
+import React, { useCallback, useState } from 'react';
+import { useApi } from '@polkadot/react-hooks';
 
-import React from 'react';
-import { withApi, withMulti } from '@polkadot/react-api';
-
-import Labelled from '../Labelled';
-import translate from '../translate';
+import LinkedWrapper from './LinkedWrapper';
 import SelectMethod from './SelectMethod';
 import SelectSection from './SelectSection';
 import methodOptions from './options/method';
 import sectionOptions from './options/section';
 
-type Props = ApiProps & I18nProps & {
-  defaultValue: CallFunction;
+interface Props {
+  className?: string;
+  defaultValue: SubmittableExtrinsicFunction<'promise'>;
   help?: React.ReactNode;
   isDisabled?: boolean;
   isError?: boolean;
   isPrivate?: boolean;
   label: React.ReactNode;
-  onChange: (value: CallFunction) => void;
+  onChange: (value: SubmittableExtrinsicFunction<'promise'>) => void;
+  style?: any;
   withLabel?: boolean;
-};
-
-interface State {
-  optionsMethod?: DropdownOptions;
-  optionsSection?: DropdownOptions;
-  value: CallFunction;
 }
 
-class InputExtrinsic extends React.PureComponent<Props, State> {
-  public state: State;
+function InputExtrinsic ({ className, defaultValue, help, label, onChange, style, withLabel }: Props): React.ReactElement<Props> {
+  const { api } = useApi();
+  const [optionsMethod, setOptionsMethod] = useState<DropdownOptions>(methodOptions(api, defaultValue.section));
+  const [optionsSection] = useState<DropdownOptions>(sectionOptions(api));
+  const [value, setValue] = useState<SubmittableExtrinsicFunction<'promise'>>((): SubmittableExtrinsicFunction<'promise'> => defaultValue);
 
-  public constructor (props: Props) {
-    super(props);
+  const _onKeyChange = useCallback(
+    (newValue: SubmittableExtrinsicFunction<'promise'>): void => {
+      if (value.section === newValue.section && value.method === newValue.method) {
+        return;
+      }
 
-    this.state = {
-      value: this.props.defaultValue
-    };
-  }
+      // set this via callback, since the we are setting a function (alternatively... we have issues)
+      setValue((): SubmittableExtrinsicFunction<'promise'> => newValue);
+      onChange(newValue);
+    },
+    [onChange, value]
+  );
 
-  public static getDerivedStateFromProps ({ api }: Props, { value }: State): Pick<State, never> {
-    return {
-      optionsMethod: methodOptions(api, value.section),
-      optionsSection: sectionOptions(api)
-    };
-  }
+  const _onSectionChange = useCallback(
+    (section: string): void => {
+      if (section === value.section) {
+        return;
+      }
 
-  public render (): React.ReactNode {
-    const { api, className, help, label, style, withLabel } = this.props;
-    const { optionsMethod, optionsSection, value } = this.state;
+      const optionsMethod = methodOptions(api, section);
 
-    return (
-      <div
-        className={className}
-        style={style}
-      >
-        <Labelled
-          help={help}
-          label={label}
-          withLabel={withLabel}
-        >
-          <div className=' ui--DropdownLinked ui--row'>
-            <SelectSection
-              className='small'
-              onChange={this.onSectionChange}
-              options={optionsSection || []}
-              value={value}
-            />
-            <SelectMethod
-              api={api}
-              className='large'
-              onChange={this.onKeyChange}
-              options={optionsMethod || []}
-              value={value}
-            />
-          </div>
-        </Labelled>
-      </div>
-    );
-  }
+      setOptionsMethod(optionsMethod);
+      _onKeyChange(api.tx[section][optionsMethod[0].value]);
+    },
+    [_onKeyChange, api, value]
+  );
 
-  private onKeyChange = (newValue: CallFunction): void => {
-    const { onChange } = this.props;
-    const { value } = this.state;
-
-    if (value.section === newValue.section && value.method === newValue.method) {
-      return;
-    }
-
-    this.setState({ value: newValue }, (): void =>
-      onChange(newValue)
-    );
-  }
-
-  private onSectionChange = (newSection: string): void => {
-    const { api } = this.props;
-    const { value } = this.state;
-
-    if (newSection === value.section) {
-      return;
-    }
-
-    const optionsMethod = methodOptions(api, newSection);
-    const fn = api.tx[newSection][optionsMethod[0].value];
-
-    this.setState({ optionsMethod }, (): void =>
-      this.onKeyChange(fn)
-    );
-  }
+  return (
+    <LinkedWrapper
+      className={className}
+      help={help}
+      label={label}
+      style={style}
+      withLabel={withLabel}
+    >
+      <SelectSection
+        className='small'
+        onChange={_onSectionChange}
+        options={optionsSection}
+        value={value}
+      />
+      <SelectMethod
+        api={api}
+        className='large'
+        onChange={_onKeyChange}
+        options={optionsMethod}
+        value={value}
+      />
+    </LinkedWrapper>
+  );
 }
 
-export default withMulti(
-  InputExtrinsic,
-  translate,
-  withApi
-);
+export default React.memo(InputExtrinsic);

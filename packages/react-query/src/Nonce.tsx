@@ -1,44 +1,31 @@
-// Copyright 2017-2019 @polkadot/react-query authors & contributors
+// Copyright 2017-2020 @polkadot/react-query authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
-import { DerivedBalances } from '@polkadot/api-derive/types';
-import { BareProps, CallProps } from '@polkadot/react-api/types';
+import { DeriveBalancesAll } from '@polkadot/api-derive/types';
+import { BareProps } from '@polkadot/react-api/types';
 
 import BN from 'bn.js';
 import React from 'react';
+import { useApi, useCall } from '@polkadot/react-hooks';
 import { formatNumber } from '@polkadot/util';
-import { withCalls } from '@polkadot/react-api';
 
-type Props = BareProps & CallProps & {
-  accountNonce?: BN;
+interface Props extends BareProps {
   callOnResult?: (accountNonce: BN) => void;
   children?: React.ReactNode;
   label?: React.ReactNode;
-  params?: string;
-};
-
-export class Nonce extends React.PureComponent<Props> {
-  public render (): React.ReactNode {
-    const { accountNonce, children, className, label = '' } = this.props;
-
-    return (
-      <div className={className}>
-        {label}{
-          accountNonce
-            ? formatNumber(accountNonce)
-            : '0'
-        }{children}
-      </div>
-    );
-  }
+  params?: string | null;
 }
 
-export default withCalls<Props>(
-  ['derive.balances.all', {
-    paramName: 'params',
-    propName: 'accountNonce',
-    transform: ({ accountNonce }: DerivedBalances): BN =>
-      accountNonce
-  }]
-)(Nonce);
+function Nonce ({ children, className, label, params }: Props): React.ReactElement<Props> {
+  const { api } = useApi();
+  const allBalances = useCall<DeriveBalancesAll>(api.derive.balances.all, [params]);
+
+  return (
+    <div className={className}>
+      {label || ''}{formatNumber(allBalances?.accountNonce)}{children}
+    </div>
+  );
+}
+
+export default React.memo(Nonce);

@@ -1,4 +1,4 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
@@ -14,39 +14,39 @@ const options = [
   { text: 'Yes', value: true }
 ];
 
-export default class BoolParam extends React.PureComponent<Props> {
-  public render (): React.ReactNode {
-    const { className, defaultValue: { value }, isDisabled, isError, label, style, withLabel } = this.props;
-    const defaultValue = value instanceof Boolean
-      ? value.valueOf()
-      : value as boolean;
-
-    return (
-      <Bare
-        className={className}
-        style={style}
-      >
-        <Dropdown
-          className={isDisabled ? 'full' : 'medium'}
-          defaultValue={defaultValue}
-          isDisabled={isDisabled}
-          isError={isError}
-          label={label}
-          options={options}
-          onChange={this.onChange}
-          withEllipsis
-          withLabel={withLabel}
-        />
-      </Bare>
-    );
-  }
-
-  private onChange = (value: boolean): void => {
-    const { onChange } = this.props;
-
+function onChange ({ onChange }: Props): (_: boolean) => void {
+  return function (value: boolean): void {
     onChange && onChange({
       isValid: true,
       value
     });
-  }
+  };
 }
+
+function BoolParam (props: Props): React.ReactElement<Props> {
+  const { className, defaultValue: { value }, isDisabled, isError, label, style, withLabel } = props;
+  const defaultValue = value instanceof Boolean
+    ? value.valueOf()
+    : value as boolean;
+
+  return (
+    <Bare
+      className={className}
+      style={style}
+    >
+      <Dropdown
+        className='full'
+        defaultValue={defaultValue}
+        isDisabled={isDisabled}
+        isError={isError}
+        label={label}
+        onChange={onChange(props)}
+        options={options}
+        withEllipsis
+        withLabel={withLabel}
+      />
+    </Bare>
+  );
+}
+
+export default React.memo(BoolParam);

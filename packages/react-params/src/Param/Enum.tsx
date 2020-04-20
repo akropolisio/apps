@@ -1,13 +1,14 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
 import { TypeDef } from '@polkadot/types/types';
-import { Props as BaseProps, RawParam } from '../types';
+import { ParamDef, Props, RawParam } from '../types';
 
-import React from 'react';
-import { Enum, createType, getTypeDef } from '@polkadot/types';
+import React, { useCallback, useEffect, useState } from 'react';
+import { registry } from '@polkadot/react-api';
 import { Dropdown } from '@polkadot/react-components';
+import { Enum, createType, getTypeDef } from '@polkadot/types';
 
 import Params from '../';
 import Bare from './Bare';
@@ -18,100 +19,89 @@ interface Option {
   value?: string;
 }
 
-type Props = BaseProps;
+function EnumParam (props: Props): React.ReactElement<Props> {
+  const { className, defaultValue, isDisabled, isError, label, onChange, overrides, style, type, withLabel } = props;
+  const [current, setCurrent] = useState<ParamDef[] | null>(null);
+  const [initialValue, setInitialValue] = useState<string | null>(null);
+  const [{ options, subTypes }, setOptions] = useState<{ options: Option[]; subTypes: TypeDef[] }>({ options: [], subTypes: [] });
 
-interface State {
-  def: TypeDef | null;
-  options: Option[];
-  sub: TypeDef[];
-  type: string | null;
-}
+  useEffect((): void => {
+    const rawType = createType(registry, type.type as any).toRawType();
+    const typeDef = getTypeDef(rawType);
+    const subTypes = typeDef.sub as TypeDef[];
 
-export default class EnumParam extends React.PureComponent<Props, State> {
-  public state: State = {
-    def: null,
-    options: [],
-    sub: [],
-    type: null
-  };
+    setOptions({
+      options: subTypes.map(({ name }): Option => ({
+        text: name,
+        value: name
+      })),
+      subTypes
+    });
+    setCurrent([{ name: subTypes[0].name, type: subTypes[0] }]);
+  }, [type]);
 
-  public static getDerivedStateFromProps ({ type: { type } }: Props, prevState: State): State | null {
-    if (prevState.type === type) {
-      return null;
-    }
-
-    const sub = getTypeDef(createType(type as any).toRawType()).sub as TypeDef[];
-    const options = sub.map(({ name }): Option => ({
-      text: name,
-      value: name
-    }));
-    const def = prevState.def || sub[0];
-
-    return {
-      def,
-      options,
-      sub,
-      type
-    };
-  }
-
-  public render (): React.ReactNode {
-    const { className, defaultValue, isDisabled, isError, label, style, withLabel } = this.props;
-
-    if (isDisabled) {
-      return <Static {...this.props} />;
-    }
-
-    const { def, options } = this.state;
-    const initialValue = defaultValue && defaultValue.value
-      ? defaultValue.value instanceof Enum
-        ? defaultValue.value.type
-        : Object.keys(defaultValue.value)[0]
-      : defaultValue;
-
-    return (
-      <Bare
-        className={className}
-        style={style}
-      >
-        <Dropdown
-          className='large'
-          defaultValue={initialValue}
-          isDisabled={isDisabled}
-          isError={isError}
-          label={label}
-          options={options}
-          onChange={this.onChange}
-          withEllipsis
-          withLabel={withLabel}
-        />
-        {def && (
-          <Params
-            onChange={this.onChangeParam}
-            params={[{ name: def.name, type: def }]}
-          />
-        )}
-      </Bare>
+  useEffect((): void => {
+    setInitialValue(
+      defaultValue && defaultValue.value
+        ? defaultValue.value instanceof Enum
+          ? defaultValue.value.type
+          : Object.keys(defaultValue.value)[0]
+        : null
     );
-  }
+  }, [defaultValue]);
 
-  private onChange = (value: string): void => {
-    this.setState(({ sub }): Pick<State, never> => ({
-      def: sub.find(({ name }): boolean => name === value) || null
-    }));
-  }
+  const _onChange = useCallback(
+    (value: string): void => {
+      const newType = subTypes.find(({ name }): boolean => name === value) || null;
 
-  private onChangeParam = ([{ isValid, value }]: RawParam[]): void => {
-    const { onChange } = this.props;
-    const { def } = this.state;
+      setCurrent(
+        newType
+          ? [{ name: newType.name, type: newType }]
+          : null
+      );
+    },
+    [subTypes]
+  );
 
-    if (def) {
-      onChange && onChange({
+  const _onChangeParam = useCallback(
+    ([{ isValid, value }]: RawParam[]): void => {
+      current && onChange && onChange({
         isValid,
-        value: {
-          [def.name as string]: value
-        }
+        value: { [current[0].name as string]: value }
       });
-    }
+    },
+    [current, onChange]
+  );
+
+  if (isDisabled) {
+    return <Static {...props} />;
   }
+
+  return (
+    <Bare
+      className={className}
+      style={style}
+    >
+      <Dropdown
+        className='full'
+        defaultValue={initialValue}
+        isDisabled={isDisabled}
+        isError={isError}
+        label={label}
+        onChange={_onChange}
+        options={options}
+        withEllipsis
+        withLabel={withLabel}
+      />
+      {current && (
+        <Params
+          onChange={_onChangeParam}
+          overrides={overrides}
+          params={current}
+        />
+      )}
+    </Bare>
+  );
 }
+
+export default React.memo(EnumParam);

@@ -1,61 +1,48 @@
-// Copyright 2017-2019 @polkadot/apps authors & contributors
+// Copyright 2017-2020 @polkadot/apps authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
 import React from 'react';
 import styled from 'styled-components';
 import { Icon } from '@polkadot/react-components';
+import { useToggle } from '@polkadot/react-hooks';
 
 interface Props {
   children: React.ReactNode;
   className?: string;
   icon: string;
+  type: 'error' | 'info';
 }
 
-interface State {
-  isHidden: boolean;
-}
+function BaseOverlay ({ children, className, icon, type }: Props): React.ReactElement<Props> | null {
+  const [isHidden, toggleHidden] = useToggle();
 
-class BaseOverlay extends React.PureComponent<Props, State> {
-  public state: State = {
-    isHidden: false
-  };
+  if (isHidden) {
+    return null;
+  }
 
-  public render (): React.ReactNode {
-    const { children, className, icon } = this.props;
-    const { isHidden } = this.state;
-
-    if (isHidden) {
-      return null;
-    }
-
-    return (
-      <div className={className}>
-        <div className='content'>
-          <Icon
-            className='contentIcon'
-            name={icon as any}
-            size='big'
-          />
-          <div className='contentItem'>
-            {children}
-          </div>
-          <Icon
-            className='closeIcon'
-            name='close'
-            onClick={this.onClose}
-          />
+  return (
+    <div className={`${className} ${type === 'error' ? 'isError' : 'isInfo'}`}>
+      <div className='content'>
+        <Icon
+          className='contentIcon'
+          name={icon as any}
+          size='big'
+        />
+        <div className='contentItem'>
+          {children}
         </div>
+        <Icon
+          className='closeIcon'
+          name='close'
+          onClick={toggleHidden}
+        />
       </div>
-    );
-  }
-
-  private onClose = (): void => {
-    this.setState({ isHidden: true });
-  }
+    </div>
+  );
 }
 
-export default styled(BaseOverlay)`
+export default React.memo(styled(BaseOverlay)`
   border-bottom: 1px solid transparent;
   left: 0;
   line-height: 1.5em;
@@ -64,6 +51,18 @@ export default styled(BaseOverlay)`
   right: 0;
   top: 0;
   z-index: 500;
+
+  &.isError {
+    background: #ffe6e6;
+    border-color: #c00;
+    color: #4d0000;
+  }
+
+  &.isInfo {
+    background: #fff6cb;
+    border-color: #e7c000;
+    color: #6b5900;
+  }
 
   .content {
     display: flex;
@@ -92,4 +91,4 @@ export default styled(BaseOverlay)`
     right: 0.75em;
     top: 0.75em;
   }
-`;
+`);

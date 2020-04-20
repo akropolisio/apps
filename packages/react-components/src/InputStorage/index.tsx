@@ -1,121 +1,87 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
 // TODO: We have a lot shared between this and InputExtrinsic
 
-import { ApiProps } from '@polkadot/react-api/types';
-import { StorageEntryPromise } from '@polkadot/api/types';
 import { DropdownOptions } from '../util/types';
-import { I18nProps } from '../types';
+import { StorageEntryPromise } from './types';
 
-import '../InputExtrinsic/InputExtrinsic.css';
+import React, { useCallback, useState } from 'react';
+import { useApi } from '@polkadot/react-hooks';
 
-import React from 'react';
-import { withApi, withMulti } from '@polkadot/react-api';
-
-import Labelled from '../Labelled';
-import translate from '../translate';
+import LinkedWrapper from '../InputExtrinsic/LinkedWrapper';
 import SelectKey from './SelectKey';
 import SelectSection from './SelectSection';
 import keyOptions from './options/key';
 import sectionOptions from './options/section';
 
-type Props = ApiProps & I18nProps & {
+interface Props {
+  className?: string;
   defaultValue: StorageEntryPromise;
   help?: React.ReactNode;
   isError?: boolean;
   label: React.ReactNode;
   onChange?: (value: StorageEntryPromise) => void;
+  style?: any;
   withLabel?: boolean;
-};
-
-interface State {
-  optionsMethod: DropdownOptions;
-  optionsSection: DropdownOptions;
-  value: StorageEntryPromise;
 }
 
-class InputStorage extends React.PureComponent<Props, State> {
-  public state: State;
+function InputStorage ({ className, defaultValue, help, label, onChange, style, withLabel }: Props): React.ReactElement<Props> {
+  const { api } = useApi();
+  const [optionsMethod, setOptionsMethod] = useState<DropdownOptions>(keyOptions(api, defaultValue.creator.section));
+  const [optionsSection] = useState<DropdownOptions>(sectionOptions(api));
+  const [value, setValue] = useState<StorageEntryPromise>((): StorageEntryPromise => defaultValue);
 
-  public constructor (props: Props) {
-    super(props);
+  const _onKeyChange = useCallback(
+    (newValue: StorageEntryPromise): void => {
+      if (value.creator.section === newValue.creator.section && value.creator.method === newValue.creator.method) {
+        return;
+      }
 
-    const { api, defaultValue: { creator: { method, section } } } = this.props;
+      // set via callback
+      setValue((): StorageEntryPromise => newValue);
+      onChange && onChange(newValue);
+    },
+    [onChange, value]
+  );
 
-    this.state = {
-      optionsMethod: keyOptions(api, section),
-      optionsSection: sectionOptions(api),
-      value: api.query[section][method]
-    };
-  }
+  const _onSectionChange = useCallback(
+    (section: string): void => {
+      if (section === value.creator.section) {
+        return;
+      }
 
-  public render (): React.ReactNode {
-    const { className, help, label, style, withLabel } = this.props;
-    const { optionsMethod, optionsSection, value } = this.state;
+      const optionsMethod = keyOptions(api, section);
 
-    return (
-      <div
-        className={className}
-        style={style}
-      >
-        <Labelled
-          help={help}
-          label={label}
-          withLabel={withLabel}
-        >
-          <div className=' ui--DropdownLinked ui--row'>
-            <SelectSection
-              className='small'
-              onChange={this.onSectionChange}
-              options={optionsSection}
-              value={value}
-            />
-            <SelectKey
-              className='large'
-              onChange={this.onKeyChange}
-              options={optionsMethod}
-              value={value}
-            />
-          </div>
-        </Labelled>
-      </div>
-    );
-  }
+      setOptionsMethod(optionsMethod);
+      _onKeyChange(api.query[section][optionsMethod[0].value]);
+    },
+    [_onKeyChange, api, value]
+  );
 
-  private onKeyChange = (newValue: StorageEntryPromise): void => {
-    const { onChange } = this.props;
-    const { value } = this.state;
-
-    if (value.creator.section === newValue.creator.section && value.creator.method === newValue.creator.method) {
-      return;
-    }
-
-    this.setState({ value: newValue }, (): void =>
-      onChange && onChange(newValue)
-    );
-  }
-
-  private onSectionChange = (newSection: string): void => {
-    const { api } = this.props;
-    const { value } = this.state;
-
-    if (newSection === value.creator.section) {
-      return;
-    }
-
-    const optionsMethod = keyOptions(api, newSection);
-    const newValue = api.query[newSection][optionsMethod[0].value];
-
-    this.setState({ optionsMethod }, (): void =>
-      this.onKeyChange(newValue)
-    );
-  }
+  return (
+    <LinkedWrapper
+      className={className}
+      help={help}
+      label={label}
+      style={style}
+      withLabel={withLabel}
+    >
+      <SelectSection
+        className='small'
+        onChange={_onSectionChange}
+        options={optionsSection}
+        value={value}
+      />
+      <SelectKey
+        className='large'
+        onChange={_onKeyChange}
+        options={optionsMethod}
+        value={value}
+      />
+    </LinkedWrapper>
+  );
 }
 
-export default withMulti(
-  InputStorage,
-  translate,
-  withApi
-);
+export default React.memo(InputStorage);

@@ -1,10 +1,10 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
 import { BareProps } from './types';
 
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import styled from 'styled-components';
 
 import addressToAddress from './util/toAddress';
@@ -12,54 +12,54 @@ import IdentityIcon from './IdentityIcon';
 import Input from './Input';
 
 interface Props extends BareProps {
+  children?: React.ReactNode;
+  defaultValue?: string | null;
   help?: React.ReactNode;
+  isFull?: boolean;
   label?: React.ReactNode;
   onChange?: (address: string | null) => void;
+  onEnter?: () => void;
+  onEscape?: () => void;
 }
 
-interface State {
-  address: string | null;
-  isError: boolean;
-}
+function InputAddressSimple ({ children, className, defaultValue, help, isFull, label, onChange, onEnter, onEscape }: Props): React.ReactElement<Props> {
+  const [address, setAddress] = useState<string | null>(defaultValue || null);
 
-class InputAddressSimple extends React.PureComponent<Props, State> {
-  public state: State = {
-    address: null,
-    isError: true
-  };
+  const _onChange = useCallback(
+    (_address: string): void => {
+      const address = addressToAddress(_address) || null;
 
-  public render (): React.ReactNode {
-    const { className, help, label } = this.props;
-    const { address, isError } = this.state;
+      setAddress(address);
 
-    return (
-      <div className={className}>
-        <Input
-          help={help}
-          isError={isError}
-          label={label}
-          onChange={this.onChange}
-        />
-        <IdentityIcon
-          className='ui--InputAddressSimpleIcon'
-          size={32}
-          value={address}
-        />
-      </div>
-    );
-  }
-
-  private onChange = (_address: string): void => {
-    const { onChange } = this.props;
-    const address = addressToAddress(_address) || null;
-
-    this.setState({ address, isError: !address }, (): void => {
       onChange && onChange(address);
-    });
-  }
+    },
+    [onChange]
+  );
+
+  return (
+    <div className={className}>
+      <Input
+        defaultValue={defaultValue}
+        help={help}
+        isError={!address}
+        isFull={isFull}
+        label={label}
+        onChange={_onChange}
+        onEnter={onEnter}
+        onEscape={onEscape}
+      >
+        {children}
+      </Input>
+      <IdentityIcon
+        className='ui--InputAddressSimpleIcon'
+        size={32}
+        value={address}
+      />
+    </div>
+  );
 }
 
-export default styled(InputAddressSimple)`
+export default React.memo(styled(InputAddressSimple)`
   position: relative;
 
   .ui--InputAddressSimpleIcon {
@@ -70,4 +70,4 @@ export default styled(InputAddressSimple)`
     position: absolute;
     top: 1rem;
   }
-`;
+`);

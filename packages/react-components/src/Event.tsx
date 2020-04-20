@@ -1,4 +1,4 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
@@ -17,29 +17,28 @@ export interface Props extends BareProps {
   value: Event;
 }
 
-export default class EventDisplay extends React.PureComponent<Props> {
-  public render (): React.ReactNode {
-    const { children, className, style, value } = this.props;
-    const params = value.typeDef.map(({ type }): { type: TypeDef } => ({
-      type: getTypeDef(type)
-    }));
-    const values = value.data.map((value): { isValid: boolean; value: Codec } => ({
-      isValid: true,
-      value
-    }));
+function EventDisplay ({ children, className, style, value }: Props): React.ReactElement<Props> {
+  const params = value.typeDef.map(({ type }): { type: TypeDef } => ({
+    type: getTypeDef(type)
+  }));
+  const values = value.data.map((value): { isValid: boolean; value: Codec } => ({
+    isValid: true,
+    value
+  }));
 
-    return (
-      <div
-        className={classes('ui--Event', className)}
-        style={style}
-      >
-        {children}
-        <Params
-          isDisabled
-          params={params}
-          values={values}
-        />
-      </div>
-    );
-  }
+  return (
+    <div
+      className={classes('ui--Event', className)}
+      style={style}
+    >
+      {children}
+      <Params
+        isDisabled
+        params={params}
+        values={values}
+      />
+    </div>
+  );
 }
+
+export default React.memo(EventDisplay);

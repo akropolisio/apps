@@ -1,6 +1,7 @@
+/* eslint-disable header/header */
 import { RegistryTypes } from '@polkadot/types/types';
 
-/* eslint-disable @typescript-eslint/camelcase */
+/* eslint-disable @typescript-eslint/camelcase, sort-keys */
 export const akroTypes: RegistryTypes = {
   Count: 'u64',
   DaoId: 'u64',

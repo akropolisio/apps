@@ -1,17 +1,13 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
 import React from 'react';
 import styled from 'styled-components';
 
-import Collection, { CollectionProps, CollectionState, collectionStyles } from './Collection';
+import Collection, { CollectionProps as Props, CollectionState as State, collectionStyles } from './Collection';
 
 import translate from './translate';
-
-type Props = CollectionProps;
-
-type State = CollectionState;
 
 class Column extends Collection<Props, State> {
   public render (): React.ReactNode {
@@ -32,15 +28,6 @@ class Column extends Collection<Props, State> {
 
     return children;
   }
-
-  // renderEmpty () {
-  //   const { emptyText } = this.props;
-  //   return (
-  //     <article className='container'>
-  //       {emptyText}
-  //     </article>
-  //   );
-  // }
 }
 
 export default translate(
@@ -51,7 +38,15 @@ export default translate(
     max-width: 100%;
     flex: 1 1;
     margin: 0;
-    padding: 0.5rem;
+    padding: 0 0.5rem;
+
+    &:first-child {
+      padding-left: 0;
+    }
+
+    &:last-child {
+      padding-right: 0;
+    }
 
     .container {
       margin: 0;

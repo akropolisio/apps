@@ -1,12 +1,12 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
-import { SubmittableResult } from '@polkadot/api/SubmittableExtrinsic';
+import { SubmittableResult } from '@polkadot/api';
 import { SubmittableExtrinsic } from '@polkadot/api/promise/types';
-import { SignerPayload, SignerResult } from '@polkadot/api/types';
-import { RpcMethod } from '@polkadot/jsonrpc/types';
+import { SignerResult } from '@polkadot/api/types';
 import { AccountId, Address } from '@polkadot/types/interfaces';
+import { DefinitionRpcExt, SignerPayloadJSON } from '@polkadot/types/types';
 
 export type Actions = 'create' | 'edit' | 'restore' | 'forget' | 'backup' | 'changePassword' | 'transfer';
 
@@ -21,7 +21,7 @@ export interface AccountInfo {
   accountId?: string | null;
 }
 
-export type QueueTxStatus = 'future' | 'ready' | 'finalized' | 'usurped' | 'dropped' | 'invalid' | 'broadcast' | 'cancelled' | 'completed' | 'error' | 'incomplete' | 'queued' | 'sending' | 'sent' | 'blocked';
+export type QueueTxStatus = 'future' | 'ready' | 'finalized' | 'finalitytimeout' | 'usurped' | 'dropped' | 'inblock' | 'invalid' | 'broadcast' | 'cancelled' | 'completed' | 'error' | 'incomplete' | 'queued' | 'qr' | 'retracted' | 'sending' | 'signing' | 'sent' | 'blocked';
 
 export type SignerCallback = (id: number, result: SignerResult | null) => void;
 
@@ -34,10 +34,10 @@ export interface QueueTx extends AccountInfo {
   extrinsic?: SubmittableExtrinsic;
   id: number;
   isUnsigned?: boolean;
-  payload?: SignerPayload;
+  payload?: SignerPayloadJSON;
   result?: any;
   removeItem: () => void;
-  rpc: RpcMethod;
+  rpc: DefinitionRpcExt;
   signerCb?: SignerCallback;
   txFailedCb?: TxFailedCallback;
   txSuccessCb?: TxCallback;
@@ -64,7 +64,7 @@ export interface QueueTxExtrinsic extends AccountInfo {
 }
 
 export interface QueueTxRpc extends AccountInfo {
-  rpc: RpcMethod;
+  rpc: DefinitionRpcExt;
   values: any[];
 }
 
@@ -74,7 +74,7 @@ export interface PartialAccountInfo {
 
 export interface PartialQueueTxExtrinsic extends PartialAccountInfo {
   extrinsic?: SubmittableExtrinsic;
-  payload?: SignerPayload;
+  payload?: SignerPayloadJSON;
   signerCb?: SignerCallback;
   txFailedCb?: TxFailedCallback;
   txSuccessCb?: TxCallback;
@@ -84,19 +84,19 @@ export interface PartialQueueTxExtrinsic extends PartialAccountInfo {
 }
 
 export interface PartialQueueTxRpc extends PartialAccountInfo {
-  rpc: RpcMethod;
+  rpc: DefinitionRpcExt;
   values: any[];
 }
 
-export type QueueTxRpcAdd = (value: PartialQueueTxRpc) => number;
+export type QueueTxRpcAdd = (value: PartialQueueTxRpc) => void;
 
-export type QueueTxExtrinsicAdd = (value: PartialQueueTxExtrinsic) => number;
+export type QueueTxExtrinsicAdd = (value: PartialQueueTxExtrinsic) => void;
 
-export type QueueTxPayloadAdd = (payload: SignerPayload, signerCb: SignerCallback) => number;
+export type QueueTxPayloadAdd = (payload: SignerPayloadJSON, signerCb: SignerCallback) => void;
 
 export type QueueTxMessageSetStatus = (id: number, status: QueueTxStatus, result?: any, error?: Error) => void;
 
-export type QueueAction$Add = (status: ActionStatus) => number;
+export type QueueAction$Add = (status: ActionStatus | ActionStatus[]) => void;
 
 export interface QueueProps {
   stqueue: QueueStatus[];

@@ -1,4 +1,4 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
@@ -15,21 +15,19 @@ export interface Props extends BareProps {
   params?: AccountId | AccountIndex | Address | string | Uint8Array | null;
 }
 
-export default class AvailableDisplay extends React.PureComponent<Props> {
-  public render (): React.ReactNode {
-    const { params, className, label, style } = this.props;
-
-    if (!params) {
-      return null;
-    }
-
-    return (
-      <Available
-        className={classes('ui--Available', className)}
-        label={label}
-        params={params}
-        style={style}
-      />
-    );
+function AvailableDisplay ({ className, label, params, style }: Props): React.ReactElement<Props> | null {
+  if (!params) {
+    return null;
   }
+
+  return (
+    <Available
+      className={classes('ui--Available', className)}
+      label={label}
+      params={params}
+      style={style}
+    />
+  );
 }
+
+export default React.memo(AvailableDisplay);

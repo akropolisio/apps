@@ -1,10 +1,10 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
 import { BareProps } from './types';
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import SUICheckbox from 'semantic-ui-react/dist/commonjs/modules/Checkbox';
 import styled from 'styled-components';
 
@@ -14,38 +14,41 @@ interface Props extends BareProps {
   isDisabled?: boolean;
   label: React.ReactNode;
   onChange?: (isChecked: boolean) => void;
+  preventDefault?: boolean;
   value?: boolean;
 }
 
-class Toggle extends React.PureComponent<Props> {
-  public render (): React.ReactNode {
-    const { className, asSwitch, defaultValue, isDisabled, value, label } = this.props;
+function Toggle ({ asSwitch = true, className, defaultValue, isDisabled, label, onChange, preventDefault, value }: Props): React.ReactElement<Props> {
+  const _onChange = useCallback(
+    (event: React.FormEvent<HTMLInputElement>, { checked }: any): void => {
+      if (preventDefault) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
 
-    return (
-      <div className={className}>
-        <SUICheckbox
-          checked={value}
-          disabled={isDisabled}
-          defaultChecked={defaultValue}
-          onChange={this.onChange}
-          toggle={asSwitch}
-        />
-        <label>{label}</label>
-      </div>
-    );
-  }
+      onChange && onChange(checked);
+    },
+    [onChange, preventDefault]
+  );
 
-  private onChange = (_: React.FormEvent<HTMLInputElement>, { checked }: any): void => {
-    const { onChange } = this.props;
-
-    onChange && onChange(checked);
-  }
+  return (
+    <div className={className}>
+      <label>{label}</label>
+      <SUICheckbox
+        checked={value}
+        defaultChecked={defaultValue}
+        disabled={isDisabled}
+        onChange={_onChange}
+        toggle={asSwitch}
+      />
+    </div>
+  );
 }
 
-export default styled(Toggle)`
+export default React.memo(styled(Toggle)`
   > label {
     display: inline-block;
-    margin-left: 0.5rem;
+    margin: 0 0.5rem;
   }
 
   > label,
@@ -56,4 +59,4 @@ export default styled(Toggle)`
   .ui.checkbox + label {
     color: rgba(78, 78, 78, 0.75);
   }
-`;
+`);

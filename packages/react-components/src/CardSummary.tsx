@@ -1,4 +1,4 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
@@ -12,6 +12,7 @@ import { formatNumber, isUndefined } from '@polkadot/util';
 
 import Progress, { Colors as ProgressColors } from './Progress';
 import Labelled from './Labelled';
+import { BlockToTime } from '@polkadot/react-query';
 
 interface ProgressProps {
   color?: ProgressColors;
@@ -19,6 +20,7 @@ interface ProgressProps {
   isPercent?: boolean;
   total?: BN | UInt;
   value?: BN | UInt;
+  withTime?: boolean;
 }
 
 interface Props extends BareProps {
@@ -28,57 +30,64 @@ interface Props extends BareProps {
   progress?: ProgressProps;
 }
 
-class CardSummary extends React.PureComponent<Props> {
-  public render (): React.ReactNode {
-    const { children, className, help, label, progress } = this.props;
-    const value = progress && progress.value;
-    const total = progress && progress.total;
-    const left = progress && !isUndefined(value) && !isUndefined(total) && value.gten(0) && total.gtn(0)
-      ? (
-        value.gt(total)
-          ? `>${
-            progress.isPercent
-              ? '100'
-              : formatNumber(total)
-          }`
-          : (
-            progress.isPercent
-              ? value.muln(100).div(total).toString()
-              : formatNumber(value)
-          )
-      )
-      : undefined;
+function CardSummary ({ children, className, help, label, progress }: Props): React.ReactElement<Props> | null {
+  const value = progress && progress.value;
+  const total = progress && progress.total;
+  const left = progress && !isUndefined(value) && !isUndefined(total) && value.gten(0) && total.gtn(0)
+    ? (
+      value.gt(total)
+        ? `>${
+          progress.isPercent
+            ? '100'
+            : formatNumber(total)
+        }`
+        : (
+          progress.isPercent
+            ? value.muln(100).div(total).toString()
+            : formatNumber(value)
+        )
+    )
+    : undefined;
 
-    if (progress && isUndefined(left)) {
-      return null;
-    }
-
-    return (
-      <article className={className}>
-        <Labelled
-          help={help}
-          isSmall
-          label={label}
-        >
-          {children}{
-            progress && !progress.hideValue && (
-              !left || isUndefined(progress.total)
-                ? '-'
-                : `${left}${progress.isPercent ? '' : '/'}${
-                  progress.isPercent
-                    ? '%'
-                    : formatNumber(progress.total)
-                }`
-            )
-          }
-          {progress && <Progress {...progress} />}
-        </Labelled>
-      </article>
-    );
+  if (progress && isUndefined(left)) {
+    return null;
   }
+
+  const isTimed = progress && progress.withTime && !isUndefined(progress.total);
+
+  return (
+    <article className={className}>
+      <Labelled
+        help={help}
+        isSmall
+        label={label}
+      >
+        {children}{
+          progress && !progress.hideValue && (
+            <>
+              {isTimed && (
+                <BlockToTime blocks={progress.total} />
+              )}
+              <div className={isTimed ? 'isSecondary' : 'isPrimary'}>
+                {!left || isUndefined(progress.total)
+                  ? '-'
+                  : `${left}${progress.isPercent ? '' : '/'}${
+                    progress.isPercent
+                      ? '%'
+                      : formatNumber(progress.total)
+                  }`
+                }
+              </div>
+            </>
+          )
+        }
+        {progress && <Progress {...progress} />}
+      </Labelled>
+    </article>
+  );
 }
 
-export default styled(CardSummary)`
+export default React.memo(styled(CardSummary)`
   align-items: center;
   background: transparent !important;
   border: none !important;
@@ -90,15 +99,19 @@ export default styled(CardSummary)`
   justify-content: flex-end;
   padding: 0rem 1.5rem 0.5rem 1.5rem;
 
+  .ui--FormatBalance .balance-postfix {
+    opacity: 1;
+  }
+
   > div {
-    font-size: 2.1rem;
+    font-size: 1.75rem;
     font-weight: 100;
     position: relative;
-    line-height: 2.1rem;
+    line-height: 1.75rem;
     text-align: right;
 
     > * {
-      margin: 0.6rem 0;
+      margin: 0.5rem 0;
 
       &:first-child {
         margin-top: 0;
@@ -119,6 +132,13 @@ export default styled(CardSummary)`
       margin: 0.2rem 0 -0.5rem !important;
       background: rgba(0,0,0,0.05);
     }
+
+    .isSecondary {
+      font-size: 1.1rem;
+      font-weight: normal;
+      line-height: 1.1rem;
+      margin-top: 0.25rem;
+    }
   }
 
   @media(max-width: 767px) {
@@ -130,4 +150,4 @@ export default styled(CardSummary)`
       line-height: 1.4rem;
     }
   }
-`;
+`);

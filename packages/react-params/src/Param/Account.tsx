@@ -1,4 +1,4 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
@@ -10,36 +10,8 @@ import keyring from '@polkadot/ui-keyring';
 
 import Bare from './Bare';
 
-export default class Account extends React.PureComponent<Props> {
-  public render (): React.ReactNode {
-    const { className, defaultValue: { value }, isDisabled, isError, label, style, withLabel } = this.props;
-    const defaultValue = value && value.toString();
-
-    return (
-      <Bare
-        className={className}
-        style={style}
-      >
-        <InputAddress
-          className='full'
-          defaultValue={defaultValue}
-          isDisabled={isDisabled}
-          isError={isError}
-          isInput
-          label={label}
-          onChange={this.onChange}
-          placeholder='5...'
-          type='allPlus'
-          withEllipsis
-          withLabel={withLabel}
-        />
-      </Bare>
-    );
-  }
-
-  private onChange = (value?: string): void => {
-    const { onChange } = this.props;
-
+function onChange ({ onChange }: Props): (_?: string | null) => void {
+  return (value?: string | null): void => {
     let isValid = false;
 
     if (value) {
@@ -56,5 +28,33 @@ export default class Account extends React.PureComponent<Props> {
       isValid,
       value
     });
-  }
+  };
 }
+
+function Account (props: Props): React.ReactElement<Props> {
+  const { className, defaultValue: { value }, isDisabled, isError, label, style, withLabel } = props;
+  const defaultValue = value && value.toString();
+
+  return (
+    <Bare
+      className={className}
+      style={style}
+    >
+      <InputAddress
+        className='full'
+        defaultValue={defaultValue}
+        isDisabled={isDisabled}
+        isError={isError}
+        isInput
+        label={label}
+        onChange={onChange(props)}
+        placeholder='5...'
+        type='allPlus'
+        withEllipsis
+        withLabel={withLabel}
+      />
+    </Bare>
+  );
+}
+
+export default React.memo(Account);

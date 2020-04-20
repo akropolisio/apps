@@ -1,16 +1,19 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
 import { BareProps } from './types';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import ReactTooltip from 'react-tooltip';
+import styled from 'styled-components';
 
 import { classes } from './util';
 
-const rootElement = document.getElementById('tooltips');
+const rootElement = typeof document === 'undefined'
+  ? null // This hack is required for server side rendering
+  : document.getElementById('tooltips');
 
 interface Props extends BareProps {
   dataFor?: string;
@@ -26,42 +29,78 @@ interface Props extends BareProps {
   trigger: string;
 }
 
-export default class Tooltip extends React.PureComponent<Props> {
-  private tooltipContainer: HTMLElement;
+function Tooltip ({ className, effect = 'solid', offset, place = 'top', text, trigger }: Props): React.ReactElement<Props> | null {
+  const [tooltipContainer] = useState(
+    typeof document === 'undefined'
+      ? {} as HTMLElement // This hack is required for server side rendering
+      : document.createElement('div')
+  );
 
-  public constructor (props: Props) {
-    super(props);
+  useEffect((): () => void => {
+    rootElement && rootElement.appendChild(tooltipContainer);
 
-    this.tooltipContainer = document.createElement('div');
-  }
+    return (): void => {
+      rootElement && rootElement.removeChild(tooltipContainer);
+    };
+  }, [tooltipContainer]);
 
-  public componentDidMount (): void {
-    if (rootElement !== null) {
-      rootElement.appendChild(this.tooltipContainer);
-    }
-  }
-
-  public componentWillUnmount (): void {
-    if (rootElement !== null) {
-      rootElement.removeChild(this.tooltipContainer);
-    }
-  }
-
-  public render (): React.ReactNode {
-    const { className, effect = 'solid', offset, place = 'bottom', text, trigger } = this.props;
-
-    return ReactDOM.createPortal(
-      <ReactTooltip
-        id={trigger}
-        delayShow={250}
-        effect={effect}
-        offset={offset}
-        place={place}
-        className={classes('ui--Tooltip', className)}
-      >
-        {text}
-      </ReactTooltip>,
-      this.tooltipContainer
-    );
-  }
+  return ReactDOM.createPortal(
+    <ReactTooltip
+      className={classes('ui--Tooltip', className)}
+      effect={effect}
+      id={trigger}
+      offset={offset}
+      place={place}
+    >
+      {className?.includes('address') ? <div>{text}</div> : text}
+    </ReactTooltip>,
+    tooltipContainer
+  );
 }
+
+export default React.memo(styled(Tooltip)`
+  > div {
+    overflow: hidden;
+  }
+
+  &.address div {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  table {
+    border: 0;
+    overflow: hidden;
+    width: 100%;
+
+    td {
+      text-align: left;
+    }
+
+    td:first-child {
+      opacity: 0.75;
+      padding-right: 0.25rem;
+      text-align: right;
+      white-space: nowrap;
+    }
+  }
+
+  div+table,
+  table+div {
+    margin-top: 0.75rem;
+  }
+
+  .faded {
+    margin-top: -0.25rem;
+    opacity: 0.75 !important;
+    font-size: 0.75em !important;
+  }
+
+  .faded+.faded {
+    margin-top: -0.5rem;
+  }
+
+  .row+.row {
+    margin-top: 0.5rem;
+  }
+`);

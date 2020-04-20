@@ -1,4 +1,4 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
@@ -6,32 +6,71 @@ import { BareProps } from './types';
 
 import React from 'react';
 import SUIModal from 'semantic-ui-react/dist/commonjs/modules/Modal/Modal';
-import settings from '@polkadot/ui-settings';
 
+import Button from './Button';
+import ButtonCancel from './ButtonCancel';
 import { classes } from './util';
 
-type Props = BareProps & {
+interface ModalProps extends BareProps {
   children: React.ReactNode;
+  header?: React.ReactNode;
+  open?: boolean;
   [index: string]: any;
+}
+
+interface ActionsProps extends BareProps {
+  cancelLabel?: string;
+  children: React.ReactNode;
+  withOr?: boolean;
+  onCancel: () => void;
+}
+
+type ModalType = React.FC<ModalProps> & {
+  Actions: React.FC<ActionsProps>;
+  Content: typeof SUIModal.Content;
+  Header: typeof SUIModal.Header;
+  Description: typeof SUIModal.Description;
 };
 
-export default class Modal extends React.PureComponent<Props> {
-  public static Actions = SUIModal.Actions;
+function ModalBase (props: ModalProps): React.ReactElement<ModalProps> {
+  const { children, className, header, open = true } = props;
 
-  public static Content = SUIModal.Content;
-
-  public static Header = SUIModal.Header;
-
-  public static Description = SUIModal.Description;
-
-  public render (): React.ReactNode {
-    const { className } = this.props;
-
-    return (
-      <SUIModal
-        {...this.props}
-        className={classes(`theme--${settings.uiTheme}`, 'ui--Modal', className)}
-      />
-    );
-  }
+  return (
+    <SUIModal
+      {...props}
+      className={classes('theme--default', 'ui--Modal', className)}
+      dimmer='inverted'
+      header={undefined}
+      open={open}
+    >
+      {header && (
+        <SUIModal.Header>{header}</SUIModal.Header>
+      )}
+      {children}
+    </SUIModal>
+  );
 }
+
+function Actions ({ cancelLabel, children, className, onCancel, withOr = true }: ActionsProps): React.ReactElement<ActionsProps> {
+  return (
+    <SUIModal.Actions>
+      <Button.Group className={className}>
+        <ButtonCancel
+          label={cancelLabel}
+          onClick={onCancel}
+        />
+        {withOr && <Button.Or />}
+        {children}
+      </Button.Group>
+    </SUIModal.Actions>
+  );
+}
+
+const Modal = React.memo(ModalBase) as unknown as ModalType;
+
+Modal.Actions = React.memo(Actions);
+Modal.Content = SUIModal.Content;
+Modal.Header = SUIModal.Header;
+Modal.Description = SUIModal.Description;
+
+export default Modal;

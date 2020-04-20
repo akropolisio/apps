@@ -1,4 +1,4 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
@@ -14,6 +14,7 @@ export interface CollectionProps extends I18nProps {
   headerText?: React.ReactNode;
   isEmpty?: boolean;
   emptyText?: React.ReactNode;
+  showEmptyText?: boolean;
 }
 
 export interface CollectionState {
@@ -40,10 +41,9 @@ export const collectionStyles = `
 `;
 
 export default class Collection<P extends CollectionProps, S extends CollectionState> extends React.PureComponent<P, S> {
-  public constructor (props: P) {
+  constructor (props: P) {
     super(props);
 
-    // eslint-disable-next-line @typescript-eslint/no-object-literal-type-assertion
     this.state = {
       isEmpty: Collection.isEmpty(props.children)
     } as S;
@@ -53,7 +53,7 @@ export default class Collection<P extends CollectionProps, S extends CollectionS
     return !children || (Array.isArray(children) && children.length === 0);
   }
 
-  public static getDerivedStateFromProps ({ isEmpty, children }: CollectionProps): CollectionState {
+  public static getDerivedStateFromProps ({ children, isEmpty }: CollectionProps): CollectionState {
     return {
       isEmpty: isEmpty === undefined ? Collection.isEmpty(children) : isEmpty
     };
@@ -78,6 +78,10 @@ export default class Collection<P extends CollectionProps, S extends CollectionS
   protected renderHeader (): React.ReactNode {
     const { buttons, headerText } = this.props;
 
+    if (!headerText && !buttons) {
+      return null;
+    }
+
     return (
       <div className='ui--Collection-header'>
         <h1>{headerText}</h1>
@@ -91,12 +95,16 @@ export default class Collection<P extends CollectionProps, S extends CollectionS
   }
 
   protected renderEmpty (): React.ReactNode {
-    const { emptyText, t } = this.props;
+    const { emptyText = this.props.t('No items'), showEmptyText = true } = this.props;
+
+    if (!showEmptyText) {
+      return null;
+    }
 
     return (
       <article>
         <div className='ui--Collection-lowercase'>
-          {emptyText || t('No items')}
+          {emptyText}
         </div>
       </article>
     );
@@ -104,6 +112,7 @@ export default class Collection<P extends CollectionProps, S extends CollectionS
 
   protected renderCollection (): React.ReactNode {
     const { children } = this.props;
+
     return children;
   }
 }

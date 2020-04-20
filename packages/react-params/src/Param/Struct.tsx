@@ -1,86 +1,69 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
 import { TypeDef } from '@polkadot/types/types';
-import { Props as BaseProps, RawParam } from '../types';
+import { ParamDef, Props, RawParam } from '../types';
 
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { registry } from '@polkadot/react-api';
 import { createType, getTypeDef } from '@polkadot/types';
 
 import Params from '../';
 import Base from './Base';
 import Static from './Static';
 
-type Props = BaseProps;
+function StructParam (props: Props): React.ReactElement<Props> {
+  const { className, isDisabled, label, onChange, overrides, style, type, withLabel } = props;
+  const [params, setParams] = useState<ParamDef[]>([]);
 
-interface State {
-  defs: TypeDef[];
-  type: string | null;
-}
+  useEffect((): void => {
+    let typeDef;
 
-export default class StructParam extends React.PureComponent<Props, State> {
-  public state: State = {
-    defs: [],
-    type: null
-  };
+    try {
+      const rawType = createType(registry, type.type as any).toRawType();
 
-  public static getDerivedStateFromProps ({ type: { type } }: Props, prevState: State): State | null {
-    if (prevState.type === type) {
-      return null;
+      typeDef = getTypeDef(rawType);
+    } catch (e) {
+      typeDef = type;
     }
 
-    const defs = getTypeDef(createType(type as any).toRawType()).sub as TypeDef[];
+    setParams((typeDef.sub as TypeDef[]).map((type): ParamDef => ({ name: type.name, type })));
+  }, [type]);
 
-    return {
-      defs,
-      type
-    } as unknown as State;
-  }
-
-  public render (): React.ReactNode {
-    const { className, isDisabled, label, style, withLabel } = this.props;
-
-    if (isDisabled) {
-      return <Static {...this.props} />;
-    }
-
-    const { defs } = this.state;
-    const params = defs.map((type): { name?: string; type: TypeDef } => ({ name: type.name, type }));
-
-    return (
-      <div>
-        <Base
-          className={className}
-          label={label}
-          size='full'
-          style={style}
-          withLabel={withLabel}
-        >
-          &nbsp;
-        </Base>
-        <Params
-          onChange={this.onChangeParams}
-          params={params}
-        />
-      </div>
-    );
-  }
-
-  private onChangeParams = (values: RawParam[]): void => {
-    const { onChange } = this.props;
-
-    if (onChange) {
-      const { defs } = this.state;
-
-      onChange({
+  const _onChangeParams = useCallback(
+    (values: RawParam[]): void => {
+      onChange && onChange({
         isValid: values.reduce((result, { isValid }): boolean => result && isValid, true as boolean),
-        value: defs.reduce((value, { name }, index): Record<string, any> => {
+        value: params.reduce((value: Record<string, any>, { name }, index): Record<string, any> => {
           value[name as string] = values[index].value;
 
           return value;
-        }, {} as unknown as Record<string, any>)
+        }, {})
       });
-    }
+    },
+    [params, onChange]
+  );
+
+  if (isDisabled) {
+    return <Static {...props} />;
   }
+
+  return (
+    <div className='ui--Params-Struct'>
+      <Base
+        className={className}
+        label={label}
+        style={style}
+        withLabel={withLabel}
+      />
+      <Params
+        onChange={_onChangeParams}
+        overrides={overrides}
+        params={params}
+      />
+    </div>
+  );
 }
+
+export default React.memo(StructParam);

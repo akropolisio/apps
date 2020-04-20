@@ -1,4 +1,4 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
@@ -28,30 +28,13 @@ export interface TabItem {
 
 interface Props extends BareProps {
   basePath: string;
-  hidden?: string[];
+  hidden?: (string | boolean | undefined)[];
   items: TabItem[];
   isSequence?: boolean;
 }
 
-export default class Tabs extends React.PureComponent<Props> {
-  public render (): React.ReactNode {
-    const { className, hidden = [], items, style } = this.props;
-    return (
-      <div
-        className={classes('ui--Menu ui menu tabular', className)}
-        style={style}
-      >
-        {
-          items
-            .filter(({ name }): boolean => !hidden.includes(name))
-            .map(this.renderItem)
-        }
-      </div>
-    );
-  }
-
-  private renderItem = ({ hasParams, isRoot, name, text, ...tab }: TabItem, index: number): React.ReactNode => {
-    const { basePath, isSequence, items } = this.props;
+function renderItem ({ basePath, isSequence, items }: Props): (tabItem: TabItem, index: number) => React.ReactNode {
+  return function Tab ({ hasParams, isRoot, name, text, ...tab }: TabItem, index: number): React.ReactNode {
     const to = isRoot
       ? basePath
       : `${basePath}/${name}`;
@@ -75,5 +58,23 @@ export default class Tabs extends React.PureComponent<Props> {
         )}
       </React.Fragment>
     );
-  }
+  };
 }
+
+function Tabs (props: Props): React.ReactElement<Props> {
+  const { className, hidden = [], items, style } = props;
+
+  return (
+    <div
+      className={classes('ui--Menu ui menu tabular', className)}
+      style={style}
+    >
+      {items
+        .filter(({ name }): boolean => !hidden.includes(name))
+        .map(renderItem(props))
+      }
+    </div>
+  );
+}
+
+export default React.memo(Tabs);

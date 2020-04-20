@@ -14,7 +14,7 @@ This can be accessed as a hosted application via [https://polkadot.js.org/apps/]
 
 Contributions are welcome!
 
-To start off, this repo uses yarn workspaces to organise the code. As such, after cloning dependencies _should_ be installed via `yarn`, not via npm, the latter will result in broken dependencies.
+To start off, this repo uses yarn workspaces to organize the code. As such, after cloning dependencies _should_ be installed via `yarn`, not via npm, the latter will result in broken dependencies.
 
 To get started -
 
@@ -27,7 +27,7 @@ To get started -
 
 If you want to edit -
 
-1. available nodes go to `/packages/app-setting/src/akroNodes.ts`
+1. available nodes go to `packages/apps-config/src/settings/endpoints.ts` and edit `AKRO_NODES`
 2. chain types go to `/packages/react-api/src/akroTypes.ts`
 
 For deploy run `yarn deploy`.

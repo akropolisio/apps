@@ -1,4 +1,4 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
@@ -22,45 +22,38 @@ interface Props extends BareProps {
   value?: UInt | BN | number;
 }
 
-export default class Progress extends React.PureComponent<Props> {
-  public render (): React.ReactNode {
-    const { className, color = 'blue', percent, total, style, value } = this.props;
-    let calculated: number | undefined;
-    const _total = bnToBn(total);
-    const _value = bnToBn(value);
+function Progress ({ className, color = 'blue', percent, style, total, value }: Props): React.ReactElement<Props> | null {
+  const _total = bnToBn(total);
+  const _value = bnToBn(value);
+  const calculated = _total.gtn(0)
+    ? 100.0 * _value.toNumber() / _total.toNumber()
+    : isBn(percent) ? percent.toNumber() : percent;
 
-    if (_total.gtn(0)) {
-      calculated = 100.0 * _value.toNumber() / _total.toNumber();
-    } else {
-      calculated = isBn(percent) ? percent.toNumber() : percent;
-    }
-
-    if (isUndefined(calculated) || calculated < 0) {
-      return null;
-    }
-
-    let rainbow: BaseColors;
-
-    if (color === 'auto' || color === 'autoReverse') {
-      if (calculated > 66.6) {
-        rainbow = color === 'auto' ? 'green' : 'red';
-      } else if (calculated > 33.3) {
-        rainbow = 'orange';
-      } else {
-        rainbow = color === 'auto' ? 'red' : 'green';
-      }
-    } else {
-      rainbow = color;
-    }
-
-    return (
-      <SUIProgress
-        className={classes('ui--Progress', className)}
-        color={rainbow}
-        percent={calculated}
-        size='tiny'
-        style={style}
-      />
-    );
+  if (isUndefined(calculated) || calculated < 0) {
+    return null;
   }
+
+  const rainbow = (color === 'auto' || color === 'autoReverse')
+    ? (calculated > 66.6)
+      ? color === 'auto'
+        ? 'green'
+        : 'red'
+      : (calculated > 33.3)
+        ? 'orange'
+        : color === 'auto'
+          ? 'red'
+          : 'green'
+    : color;
+
+  return (
+    <SUIProgress
+      className={classes('ui--Progress', className)}
+      color={rainbow}
+      percent={calculated}
+      size='tiny'
+      style={style}
+    />
+  );
 }
+
+export default React.memo(Progress);

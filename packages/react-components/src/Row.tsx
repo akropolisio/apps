@@ -1,11 +1,10 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
-import { AccountId, AccountIndex } from '@polkadot/types/interfaces';
+import { DeriveAccountInfo } from '@polkadot/api-derive/types';
 import { KeyringItemType } from '@polkadot/ui-keyring/types';
 
-import { Label } from 'semantic-ui-react';
 import React from 'react';
 
 import Button from './Button';
@@ -13,11 +12,20 @@ import { classes, toShortAddress } from './util';
 import CopyButton from './CopyButton';
 import Input from './Input';
 import InputTags from './InputTags';
+import Tag from './Tag';
 
 export const styles = `
   text-align: left;
 
-  &.inline {
+  &.isDisabled {
+    opacity: 0.6;
+
+    .ui--IdentityIcon  {
+      filter: grayscale(100%);
+    }
+  }
+
+  &.isInline {
     display: flex;
 
     .ui--Row-accountId {
@@ -25,7 +33,7 @@ export const styles = `
     }
   }
 
-  &.invalid {
+  &.isInvalid {
     .ui--Row-accountId,
     .ui--Row-icon {
       filter: grayscale(100);
@@ -60,10 +68,6 @@ export const styles = `
     margin-bottom: 0.25rem;
   }
 
-  .ui--Row-accountIndex {
-    font-style: italic;
-  }
-
   .ui--Row-balances {
     display: flex;
     .column {
@@ -72,6 +76,7 @@ export const styles = `
       label,
       .result {
         display: inline-block;
+        vertical-align: middle;
       }
     }
 
@@ -185,7 +190,7 @@ export const styles = `
 `;
 
 export interface RowProps {
-  accounts_idAndIndex?: [AccountId?, AccountIndex?];
+  accounts_info?: DeriveAccountInfo;
   buttons?: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
@@ -210,7 +215,7 @@ export interface RowState {
 // const DEFAULT_ADDR = '5'.padEnd(16, 'x');
 // const ICON_SIZE = 48;
 
-class Row<P extends RowProps, S extends RowState> extends React.PureComponent<P, S> {
+export default class Row<P extends RowProps, S extends RowState> extends React.PureComponent<P, S> {
   public state: S = {
     isEditingName: false,
     isEditingTags: false
@@ -259,23 +264,23 @@ class Row<P extends RowProps, S extends RowState> extends React.PureComponent<P,
     return (
       <span className='editSpan'>
         <Button
-          className='iconButton'
+          className='icon-button'
           icon='edit'
-          size='mini'
           isPrimary
           key='unlock'
+          size='mini'
         />
       </span>
 
     );
   }
 
-  protected renderName (withCopy: boolean = false): React.ReactNode {
+  protected renderName (withCopy = false): React.ReactNode {
     const { defaultName, isEditable } = this.props;
     const { address, isEditingName, name } = this.state;
     const withName = name !== defaultName;
 
-    // can't be both editable and copiable
+    // can't be both editable and copyable
     return isEditingName
       ? (
         <Input
@@ -330,11 +335,11 @@ class Row<P extends RowProps, S extends RowState> extends React.PureComponent<P,
       ? (
         <InputTags
           className='ui--Row-tags-input'
+          defaultValue={tags}
           onBlur={this.saveTags}
           onChange={this.onChangeTags}
           onClose={this.saveTags}
           openOnFocus
-          defaultValue = {tags}
           searchInput={{ autoFocus: true }}
           value={tags}
           withLabel={false}
@@ -349,7 +354,10 @@ class Row<P extends RowProps, S extends RowState> extends React.PureComponent<P,
             !tags.length
               ? (isEditable ? <span className='addTags'>add tags</span> : undefined)
               : tags.map((tag): React.ReactNode => (
-                <Label key={tag} size='tiny' color='grey'>{tag}</Label>
+                <Tag
+                  key={tag}
+                  label={tag}
+                />
               ))
           }
           {isEditable && this.renderEditIcon()}
@@ -373,5 +381,3 @@ class Row<P extends RowProps, S extends RowState> extends React.PureComponent<P,
     }) as unknown as S);
   }
 }
-
-export default Row;

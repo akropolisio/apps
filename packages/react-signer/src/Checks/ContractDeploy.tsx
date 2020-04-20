@@ -1,31 +1,29 @@
-// Copyright 2017-2019 @polkadot/react-signer authors & contributors
+// Copyright 2017-2020 @polkadot/react-signer authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
-import { DerivedContractFees } from '@polkadot/api-derive/types';
-import { ExtraFees } from './types';
+import { DeriveContractFees } from '@polkadot/api-derive/types';
+import { ExtraFees as State } from './types';
 
 import BN from 'bn.js';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Compact, UInt } from '@polkadot/types';
 
 interface Props {
   endowment: BN | Compact<UInt>;
-  fees: DerivedContractFees;
-  onChange: (fees: ExtraFees) => void;
+  fees: DeriveContractFees;
+  onChange: (fees: State) => void;
 }
 
-type State = ExtraFees;
-
-export default class ContractDeploy extends React.PureComponent<Props, State> {
-  public state: State = {
-    extraFees: new BN(0),
+function ContractDeploy ({ endowment, fees, onChange }: Props): React.ReactElement<Props> | null {
+  const [, setState] = useState<State>({
     extraAmount: new BN(0),
+    extraFees: new BN(0),
     extraWarn: false
-  };
+  });
 
-  public static getDerivedStateFromProps ({ endowment, fees, onChange }: Props, state: State): State {
-    const extraFees = new BN(fees.createBaseFee).add(fees.contractFee);
+  useEffect((): void => {
+    const extraFees = fees.contractFee;
     const extraAmount = endowment instanceof Compact
       ? endowment.toBn()
       : new BN(endowment || 0);
@@ -36,14 +34,16 @@ export default class ContractDeploy extends React.PureComponent<Props, State> {
       extraWarn: false
     };
 
-    if (!update.extraAmount.eq(state.extraAmount) || !update.extraFees.eq(state.extraFees)) {
-      onChange(update);
-    }
+    setState((state): State => {
+      if (!update.extraAmount.eq(state.extraAmount) || !update.extraFees.eq(state.extraFees)) {
+        onChange(update);
+      }
 
-    return update;
-  }
+      return update;
+    });
+  }, [endowment, fees, onChange]);
 
-  public render (): React.ReactNode {
-    return null;
-  }
+  return null;
 }
+
+export default React.memo(ContractDeploy);

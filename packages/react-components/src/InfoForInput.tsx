@@ -1,4 +1,4 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
@@ -14,7 +14,15 @@ interface Props {
   type?: 'error' | 'info' | 'warning';
 }
 
-const Wrapper = styled.div`
+function InfoForInput ({ children, className, type = 'info' }: Props): React.ReactElement<Props> {
+  return (
+    <Labelled>
+      <div className={classes(className, type)}>{children}</div>
+    </Labelled>
+  );
+}
+
+export default React.memo(styled(InfoForInput)`
   background: white;
   border-radius: 0 0 0.25rem 0.25rem;
   margin: -0.5rem 0 0.25rem;
@@ -33,16 +41,4 @@ const Wrapper = styled.div`
     margin: 0;
     padding: 0;
   }
-`;
-
-export default class InfoForInput extends React.PureComponent<Props> {
-  public render (): React.ReactNode {
-    const { children, className, type = 'info' } = this.props;
-
-    return (
-      <Labelled>
-        <Wrapper className={classes(className, type)}>{children}</Wrapper>
-      </Labelled>
-    );
-  }
-}
+`);

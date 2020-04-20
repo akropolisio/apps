@@ -1,4 +1,4 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
@@ -32,60 +32,51 @@ interface Props extends BareProps {
   withLabel?: boolean;
 }
 
-interface State {
-  options: Option[];
-}
-
 function loadTags (): string[] {
-  return store.get('tags') || ['Default'];
+  return (store.get('tags') || ['Default']).sort();
 }
 
-function saveTags (tags: string[]): void {
-  store.set('tags', tags);
+function valueToOption (value: string): Option {
+  return { key: value, text: value, value };
 }
 
 const tags = loadTags();
+const options = tags.map(valueToOption);
 
-export default class InputTags extends React.PureComponent<Props> {
-  public state: State = {
-    options: tags.map((value): { key: string; text: string; value: string } => ({
-      key: value, text: value, value
-    }))
-  };
-
-  public render (): React.ReactNode {
-    const { className, defaultValue, help, isDisabled, isError, label, onBlur, onChange, onClose, placeholder, searchInput, value, withLabel } = this.props;
-    const { options } = this.state;
-
-    return (
-      <Dropdown
-        allowAdd={!isDisabled}
-        className={className}
-        defaultValue={defaultValue}
-        help={help}
-        isDisabled={isDisabled}
-        isError={isError}
-        isMultiple
-        label={label}
-        onAdd={this.onAdd}
-        onBlur={onBlur}
-        onChange={onChange}
-        onClose={onClose}
-        options={options}
-        placeholder={placeholder}
-        searchInput={searchInput}
-        value={value}
-        withLabel={withLabel}
-      />
-    );
-  }
-
-  private onAdd = (value: string): void => {
-    tags.push(value);
-    saveTags(tags);
-
-    this.setState(({ options }: State): Pick<State, never> => ({
-      options: [...options, { key: value, text: value, value }]
-    }));
-  }
+function saveTags (tags: string[]): void {
+  store.set('tags', tags.sort());
 }
+
+function onAddTag (value: string): void {
+  tags.push(value);
+
+  options.push(valueToOption(value));
+
+  saveTags(tags);
+}
+
+function InputTags ({ allowAdd = true, className, defaultValue, help, isDisabled, isError, label, onBlur, onChange, onClose, placeholder, searchInput, value, withLabel }: Props): React.ReactElement<Props> {
+  return (
+    <Dropdown
+      allowAdd={allowAdd && !isDisabled}
+      className={className}
+      defaultValue={defaultValue}
+      help={help}
+      isDisabled={isDisabled}
+      isError={isError}
+      isMultiple
+      label={label}
+      onAdd={onAddTag}
+      onBlur={onBlur}
+      onChange={onChange}
+      onClose={onClose}
+      options={options}
+      placeholder={placeholder}
+      searchInput={searchInput}
+      value={value}
+      withLabel={withLabel}
+    />
+  );
+}
+
+export default React.memo(InputTags);

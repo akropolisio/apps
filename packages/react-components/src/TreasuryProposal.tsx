@@ -1,135 +1,97 @@
-// Copyright 2017-2019 @polkadot/app-democracy authors & contributors
+// Copyright 2017-2020 @polkadot/app-democracy authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
 import { TreasuryProposal as TreasuryProposalType } from '@polkadot/types/interfaces';
-import { I18nProps } from '@polkadot/react-components/types';
-import { ApiProps } from '@polkadot/react-api/types';
 
-import React from 'react';
-import { Option } from '@polkadot/types';
+import React, { useEffect, useState } from 'react';
 import { InputAddress, Labelled, Static } from '@polkadot/react-components';
-import { withMulti, withApi } from '@polkadot/react-api';
-import { formatBalance } from '@polkadot/util';
+import { useApi } from '@polkadot/react-hooks';
+import { Option } from '@polkadot/types';
+import { FormatBalance } from '@polkadot/react-query';
 
 import Inset, { InsetProps } from './Inset';
-import translate from './translate';
+import { useTranslation } from './translate';
 
-type Props = I18nProps & ApiProps & {
+interface Props {
   className?: string;
   asInset?: boolean;
   insetProps?: Partial<InsetProps>;
   onClick?: () => void;
-  proposalId: string;
+  proposalId?: string;
   proposal?: TreasuryProposalType | null;
   withLink?: boolean;
-};
-
-interface State {
-  proposal?: TreasuryProposalType | null;
 }
 
-class TreasuryProposal extends React.PureComponent<Props, State> {
-  public state: State = {};
+function TreasuryProposal ({ asInset, className, insetProps, onClick, proposal, proposalId }: Props): React.ReactElement<Props> | null {
+  const { t } = useTranslation();
+  const [stateProposal, setProposal] = useState<TreasuryProposalType | null>(null);
+  const { api } = useApi();
 
-  public constructor (props: Props) {
-    super(props);
-
-    if (!props.proposal) {
-      this.fetchProposal();
+  useEffect((): void => {
+    if (!proposal && proposalId) {
+      api.query.treasury
+        .proposals<Option<TreasuryProposalType>>(proposalId)
+        .then((proposal): TreasuryProposalType | null => proposal.unwrapOr(null))
+        .catch((): null => null)
+        .then(setProposal);
+    } else {
+      setProposal(proposal || null);
     }
-  }
+  }, [api, proposal, proposalId]);
 
-  public static getDerivedStateFromProps ({ proposal }: Props, state: State): State | null {
-    if (!state.proposal && proposal) {
-      return { proposal };
-    }
-
+  if (!stateProposal) {
     return null;
   }
 
-  public componentDidUpdate (): void {
-    this.fetchProposal();
-  }
+  const { beneficiary, bond, proposer, value } = stateProposal;
 
-  public render (): React.ReactNode {
-    const { className, asInset, insetProps, onClick, t } = this.props;
-    const { proposal } = this.state;
+  const inner = (
+    <>
+      <Labelled label={t('proposed by')}>
+        <InputAddress
+          defaultValue={proposer}
+          isDisabled
+          value={proposer}
+          withLabel={false}
+        />
+      </Labelled>
+      <Labelled label={t('beneficiary')}>
+        <InputAddress
+          defaultValue={beneficiary}
+          isDisabled
+          value={beneficiary}
+          withLabel={false}
+        />
+      </Labelled>
+      <Static label={t('value')}>
+        <FormatBalance value={value} />
+      </Static>
+      <Static label={t('bond')}>
+        <FormatBalance value={bond} />
+      </Static>
+    </>
+  );
 
-    if (!proposal) {
-      return null;
-    }
-
-    const { bond, beneficiary, proposer, value } = proposal;
-
-    const inner = (
-      <>
-        <Labelled label={t('proposed by')}>
-          <InputAddress
-            isDisabled
-            defaultValue={proposer}
-            value={proposer}
-            withLabel={false}
-          />
-        </Labelled>
-        <Labelled label={t('beneficiary')}>
-          <InputAddress
-            isDisabled
-            defaultValue={beneficiary}
-            value={beneficiary}
-            withLabel={false}
-          />
-        </Labelled>
-        <Static label={t('value')}>
-          {formatBalance(value)}
-        </Static>
-        <Static label={t('bond')}>
-          {formatBalance(bond)}
-        </Static>
-      </>
-    );
-
-    if (asInset) {
-      return (
-        <Inset
-          className={className}
-          {...insetProps}
-        >
-          {inner}
-        </Inset>
-      );
-    }
-
+  if (asInset) {
     return (
-      <div
+      <Inset
         className={className}
-        onClick={onClick && onClick}
+        {...insetProps}
       >
         {inner}
-      </div>
+      </Inset>
     );
   }
 
-  private fetchProposal = (): void => {
-    const { api, proposalId } = this.props;
-
-    if (!this.state.proposal && proposalId) {
-      api.query.treasury
-        .proposals<Option<TreasuryProposalType>>(proposalId)
-        .then((proposal): void => {
-          this.setState({
-            proposal: proposal.unwrapOr(null)
-          });
-        })
-        .catch((): void => {
-          console.error('Error fetching proposal');
-        });
-    }
-  }
+  return (
+    <div
+      className={className}
+      onClick={onClick && onClick}
+    >
+      {inner}
+    </div>
+  );
 }
 
-export default withMulti(
-  TreasuryProposal,
-  translate,
-  withApi
-);
+export default React.memo(TreasuryProposal);

@@ -1,83 +1,55 @@
-// Copyright 2017-2019 @polkadot/apps authors & contributors
+// Copyright 2017-2020 @polkadot/apps authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
-import { I18nProps } from '@polkadot/react-components/types';
-import { ApiProps } from '@polkadot/react-api/types';
-
 import React from 'react';
-import styled from 'styled-components';
-import { withApi, withMulti } from '@polkadot/react-api';
+import { useApi } from '@polkadot/react-hooks';
 import settings from '@polkadot/ui-settings';
 
-import translate from '../translate';
+import { useTranslation } from '../translate';
 import BaseOverlay from './Base';
 
-type Props = I18nProps & ApiProps;
-// @ts-ignore
-const isFirefox = typeof InstallTrigger !== 'undefined';
+const wsUrl = settings.apiUrl;
+const isWs = typeof wsUrl === 'string' && wsUrl.startsWith('ws://');
+const isWsLocal = typeof wsUrl === 'string' && wsUrl.includes('127.0.0.1');
+const isHttps = window.location.protocol.startsWith('https:');
 
-class Connecting extends React.PureComponent<Props> {
-  public render (): React.ReactNode {
-    return this.renderExtension() || this.renderConnecting();
-  }
+interface Props {
+  className?: string;
+}
 
-  private renderExtension (): React.ReactNode {
-    const { className, isWaitingInjected, t } = this.props;
+function Connecting ({ className }: Props): React.ReactElement<Props> | null {
+  const { t } = useTranslation();
+  const { isApiConnected, isWaitingInjected } = useApi();
 
-    if (!isWaitingInjected) {
-      return null;
-    }
-
+  if (isWaitingInjected) {
     return (
       <BaseOverlay
         className={className}
         icon='puzzle'
+        type='info'
       >
         <div>{t('Waiting for authorization from the extension. Please open the installed extension and approve or reject access.')}</div>
       </BaseOverlay>
     );
-  }
-
-  private renderConnecting (): React.ReactNode {
-    const { className, isApiConnected, t } = this.props;
-
-    if (isApiConnected) {
-      return null;
-    }
-
-    const wsUrl = settings.apiUrl;
-    const isWs = wsUrl.indexOf('ws://') === 0;
-    const isWsRemote = wsUrl.indexOf('127.0.0.1') === -1;
-    const isHttps = window.location.protocol.indexOf('https:') === 0;
-
+  } else if (!isApiConnected) {
     return (
       <BaseOverlay
         className={className}
         icon='globe'
+        type='error'
       >
         <div>{t('You are not connected to a node. Ensure that your node is running and that the Websocket endpoint is reachable.')}</div>
         {
-          isFirefox && isWs
-            ? <div>{t('With the Firefox browser connecting to insecure WebSockets ({{wsUrl}}) will fail due to the browser not allowing localhost access from a secure site.', { replace: { wsUrl } })}</div>
-            : undefined
-        }
-        {
-          isWs && isWsRemote && isHttps
-            ? <div>{t(`You are connecting from a secure location to an insecure WebSocket ({{wsUrl}}). Due to browser mixed-content security policies this connection type is not allowed. Change the RPC service to a secure 'wss' endpoint.`, { replace: { wsUrl } })}</div>
+          isWs && !isWsLocal && isHttps
+            ? <div>{t('You are connecting from a secure location to an insecure WebSocket ({{wsUrl}}). Due to browser mixed-content security policies this connection type is not allowed. Change the RPC service to a secure \'wss\' endpoint.', { replace: { wsUrl } })}</div>
             : undefined
         }
       </BaseOverlay>
     );
   }
+
+  return null;
 }
 
-export default withMulti(
-  styled(Connecting)`
-    background: #ffe6e6;
-    border-color: #c00;
-    color: #4d0000;
-  `,
-  translate,
-  withApi
-);
+export default React.memo(Connecting);

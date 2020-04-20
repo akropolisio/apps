@@ -1,24 +1,24 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
-import { WithTranslation } from 'react-i18next';
 import { BareProps } from './types';
 
-import React from 'react';
-import Dropzone from 'react-dropzone';
+import React, { useCallback, useState, createRef } from 'react';
+import Dropzone, { DropzoneRef } from 'react-dropzone';
 import styled from 'styled-components';
-import { formatNumber } from '@polkadot/util';
+import { formatNumber, isHex, u8aToString, hexToU8a } from '@polkadot/util';
 
 import { classes } from './util';
 import Labelled from './Labelled';
-import translate from './translate';
+import { useTranslation } from './translate';
 
-type Props = BareProps & WithTranslation & {
+export interface InputFileProps extends BareProps {
   // Reference Example Usage: https://github.com/react-dropzone/react-dropzone/tree/master/examples/Accept
   // i.e. MIME types: 'application/json, text/plain', or '.json, .txt'
   accept?: string;
   clearContent?: boolean;
+  convertHex?: boolean;
   help?: React.ReactNode;
   isDisabled?: boolean;
   isError?: boolean;
@@ -27,61 +27,94 @@ type Props = BareProps & WithTranslation & {
   placeholder?: React.ReactNode | null;
   withEllipsis?: boolean;
   withLabel?: boolean;
-};
-
-interface State {
-  file?: {
-    name: string;
-    size: number;
-  };
 }
 
-interface LoadEvent {
-  target: {
-    result: ArrayBuffer;
-  };
+interface FileState {
+  name: string;
+  size: number;
 }
 
-class InputFile extends React.PureComponent<Props, State> {
-  private dropZone: any;
+const BYTE_STR_0 = '0'.charCodeAt(0);
+const BYTE_STR_X = 'x'.charCodeAt(0);
+const NOOP = (): void => undefined;
 
-  public state: State = {};
+function convertResult (result: ArrayBuffer, convertHex?: boolean): Uint8Array {
+  const data = new Uint8Array(result);
 
-  public constructor (props: Props) {
-    super(props);
+  // this converts the input (if detected as hex), vai the hex conversion route
+  if (convertHex && data[0] === BYTE_STR_0 && data[1] === BYTE_STR_X) {
+    const hex = u8aToString(data);
 
-    this.dropZone = React.createRef();
+    if (isHex(hex)) {
+      return hexToU8a(hex);
+    }
   }
 
-  public render (): React.ReactNode {
-    const { accept, className, clearContent, help, isDisabled, isError = false, label, placeholder, t, withEllipsis, withLabel } = this.props;
-    const { file } = this.state;
+  return data;
+}
 
-    const dropZone = (
-      <Dropzone
-        accept={accept}
-        className={classes('ui--InputFile', isError ? 'error' : '', className)}
-        disabled={isDisabled}
-        multiple={false}
-        ref={this.dropZone}
-        onDrop={this.onDrop}
-      >
-        <em className='label'>
-          {
-            !file || clearContent
-              ? placeholder || t('click to select or drag and drop the file here')
-              : placeholder || t('{{name}} ({{size}} bytes)', {
-                replace: {
-                  name: file.name,
-                  size: formatNumber(file.size)
-                }
-              })
+function InputFile ({ accept, className, clearContent, convertHex, help, isDisabled, isError = false, label, onChange, placeholder, withEllipsis, withLabel }: InputFileProps): React.ReactElement<InputFileProps> {
+  const { t } = useTranslation();
+  const dropRef = createRef<DropzoneRef>();
+  const [file, setFile] = useState<FileState | undefined>();
+
+  const _onDrop = useCallback(
+    (files: File[]): void => {
+      files.forEach((file): void => {
+        const reader = new FileReader();
+
+        reader.onabort = NOOP;
+        reader.onerror = NOOP;
+
+        reader.onload = ({ target }: ProgressEvent<FileReader>): void => {
+          if (target && target.result) {
+            const name = file.name;
+            const data = convertResult(target.result as ArrayBuffer, convertHex);
+
+            onChange && onChange(data, name);
+            dropRef && setFile({
+              name,
+              size: data.length
+            });
           }
-        </em>
-      </Dropzone>
-    );
+        };
 
-    return label ? (
+        reader.readAsArrayBuffer(file);
+      });
+    },
+    [convertHex, dropRef, onChange]
+  );
+
+  const dropZone = (
+    <Dropzone
+      accept={accept}
+      disabled={isDisabled}
+      multiple={false}
+      onDrop={_onDrop}
+      ref={dropRef}
+    >
+      {({ getInputProps, getRootProps }): JSX.Element => (
+        <div {...getRootProps({ className: classes('ui--InputFile', isError ? 'error' : '', className) })} >
+          <input {...getInputProps()} />
+          <em className='label' >
+            {
+              !file || clearContent
+                ? placeholder || t('click to select or drag and drop the file here')
+                : placeholder || t('{{name}} ({{size}} bytes)', {
+                  replace: {
+                    name: file.name,
+                    size: formatNumber(file.size)
+                  }
+                })
+            }
+          </em>
+        </div>
+      )}
+    </Dropzone>
+  );
+
+  return label
+    ? (
       <Labelled
         help={help}
         label={label}
@@ -90,46 +123,11 @@ class InputFile extends React.PureComponent<Props, State> {
       >
         {dropZone}
       </Labelled>
-    ) : dropZone;
-  }
-
-  private onDrop = (files: File[]): void => {
-    const { onChange } = this.props;
-
-    files.forEach((file): void => {
-      const reader = new FileReader();
-
-      reader.onabort = (): void => {
-        // ignore
-      };
-
-      reader.onerror = (): void => {
-        // ignore
-      };
-
-      // @ts-ignore ummm... events are not properly specified here?
-      reader.onload = ({ target: { result } }: LoadEvent): void => {
-        const data = new Uint8Array(result);
-        const name = file.name;
-
-        onChange && onChange(data, name);
-
-        if (this.dropZone && this.dropZone.current) {
-          this.setState({
-            file: {
-              name,
-              size: data.length
-            }
-          });
-        }
-      };
-
-      reader.readAsArrayBuffer(file);
-    });
-  }
+    )
+    : dropZone;
 }
 
-export default translate(styled(InputFile)`
+export default React.memo(styled(InputFile)`
   background: #fff;
   border: 1px solid rgba(34, 36, 38, 0.15);
   border-radius: 0.28571429rem;

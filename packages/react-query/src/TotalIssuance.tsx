@@ -1,41 +1,35 @@
-/* eslint-disable @typescript-eslint/camelcase */
-// Copyright 2017-2019 @polkadot/react-query authors & contributors
+// Copyright 2017-2020 @polkadot/react-query authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
-import { BareProps, CallProps } from '@polkadot/react-api/types';
-import { Balance } from '@polkadot/types/interfaces';
+import { BareProps } from '@polkadot/react-api/types';
 
 import React from 'react';
-import { withCalls } from '@polkadot/react-api';
-import { formatBalance } from '@polkadot/util';
+import { useApi, useCall } from '@polkadot/react-hooks';
+import FormatBalance from './FormatBalance';
 
-type Props = BareProps & CallProps & {
+interface Props extends BareProps {
   children?: React.ReactNode;
   label?: React.ReactNode;
-  balances_totalIssuance?: Balance;
-};
-
-export class TotalIssuance extends React.PureComponent<Props> {
-  public render (): React.ReactNode {
-    const { children, className, label = '', style, balances_totalIssuance } = this.props;
-    const value = balances_totalIssuance
-      ? balances_totalIssuance.toString()
-      : null;
-
-    return (
-      <div
-        className={className}
-        style={style}
-      >
-        {label}{
-          value
-            ? `${formatBalance(value, false)}${formatBalance.calcSi(value).value}`
-            : '-'
-        }{children}
-      </div>
-    );
-  }
 }
 
-export default withCalls<Props>('query.balances.totalIssuance')(TotalIssuance);
+function TotalIssuance ({ children, className, label, style }: Props): React.ReactElement<Props> {
+  const { api } = useApi();
+  const totalIssuance = useCall<string>(api.query.balances?.totalIssuance, []);
+
+  return (
+    <div
+      className={className}
+      style={style}
+    >
+      {label || ''}
+      <FormatBalance
+        value={totalIssuance}
+        withSi
+      />
+      {children}
+    </div>
+  );
+}
+
+export default React.memo(TotalIssuance);

@@ -1,13 +1,14 @@
-// Copyright 2017-2019 @polkadot/app-contracts authors & contributors
+// Copyright 2017-2020 @polkadot/app-contracts authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
 import { I18nProps } from '@polkadot/react-components/types';
 
 import React from 'react';
-import { Button, InputAddress, Modal, TxButton, TxComponent } from '@polkadot/react-components';
+import { InputAddress, Modal, TxButton, TxComponent } from '@polkadot/react-components';
 
 export interface TxModalProps extends I18nProps {
+  filter?: string[];
   onSubmit?: () => void;
   onClose?: () => void;
   onSuccess?: () => void;
@@ -20,11 +21,11 @@ export interface TxModalState {
   isOpen: boolean;
 }
 
-class TxModal<P extends TxModalProps, S extends TxModalState> extends TxComponent<P, S> {
+export default class TxModal<P extends TxModalProps, S extends TxModalState> extends TxComponent<P, S> {
   protected defaultState: S = {
     accountId: null,
-    isOpen: false,
-    isBusy: false
+    isBusy: false,
+    isOpen: false
   } as unknown as S;
 
   public state: S = this.defaultState;
@@ -37,19 +38,16 @@ class TxModal<P extends TxModalProps, S extends TxModalState> extends TxComponen
         {this.renderTrigger && this.renderTrigger()}
         <Modal
           className='ui--Modal'
-          dimmer='inverted'
+          header={this.headerText()}
           onClose={this.hideModal}
           open={isOpen}
         >
-          <Modal.Header>
-            {this.headerText()}
-          </Modal.Header>
           <Modal.Content>
             {this.renderPreContent()}
             {this.renderInputAccount()}
             {this.renderContent()}
           </Modal.Content>
-          <Modal.Actions>
+          <Modal.Actions onCancel={this.hideModal}>
             {this.renderButtons()}
           </Modal.Actions>
         </Modal>
@@ -106,6 +104,8 @@ class TxModal<P extends TxModalProps, S extends TxModalState> extends TxComponen
       });
     }
 
+  protected isUnsigned: () => boolean = (): boolean => false;
+
   protected txMethod: () => string = (): string => '';
 
   protected txParams: () => any[] = (): any[] => [];
@@ -117,20 +117,17 @@ class TxModal<P extends TxModalProps, S extends TxModalState> extends TxComponen
   protected renderTrigger?: () => React.ReactNode = (): React.ReactNode => null;
 
   protected renderButtons: () => React.ReactNode = (): React.ReactNode => {
-    return (
-      <Button.Group>
-        {this.renderCancelButton()}
-        {this.renderTxButton()}
-      </Button.Group>
-    );
+    return this.renderTxButton();
   }
 
   protected renderInputAccount (): React.ReactNode {
+    const { filter } = this.props;
     const { accountId, isBusy } = this.state;
 
     return (
       <InputAddress
         defaultValue={accountId}
+        filter={filter}
         help={this.accountHelp()}
         isDisabled={isBusy}
         isInput={false}
@@ -147,7 +144,12 @@ class TxModal<P extends TxModalProps, S extends TxModalState> extends TxComponen
 
     return (
       <TxButton
-        accountId={accountId}
+        {...(
+          this.isUnsigned()
+            ? { isUnsigned: true }
+            : { accountId }
+        )}
+        icon='sign-in'
         isDisabled={this.isDisabled()}
         isPrimary
         label={this.submitLabel()}
@@ -155,24 +157,8 @@ class TxModal<P extends TxModalProps, S extends TxModalState> extends TxComponen
         onFailed={this.onFailed}
         onSuccess={this.onSuccess}
         params={this.txParams()}
-        ref={this.button}
         tx={this.txMethod()}
       />
-    );
-  }
-
-  protected renderCancelButton (): React.ReactNode {
-    const { t } = this.props;
-
-    return (
-      <>
-        <Button
-          isNegative
-          onClick={this.hideModal}
-          label={t('Cancel')}
-        />
-        <Button.Or />
-      </>
     );
   }
 
@@ -198,5 +184,3 @@ class TxModal<P extends TxModalProps, S extends TxModalState> extends TxComponen
     );
   }
 }
-
-export default TxModal;

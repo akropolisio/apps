@@ -1,4 +1,4 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
@@ -8,7 +8,6 @@ import { SemanticCOLORS, SemanticICONS } from 'semantic-ui-react/dist/commonjs/g
 import React from 'react';
 import SUILabel from 'semantic-ui-react/dist/commonjs/elements/Label/Label';
 import styled from 'styled-components';
-import settings from '@polkadot/ui-settings';
 
 import { classes } from './util';
 import Icon from './Icon';
@@ -20,28 +19,29 @@ interface Props extends BareProps {
   label?: React.ReactNode;
 }
 
-class Bubble extends React.PureComponent<Props> {
-  public render (): React.ReactNode {
-    const { color, children, className, icon, label } = this.props;
-
-    return (
-      <SUILabel
-        className={classes(`theme--${settings.uiTheme}`, 'ui--Bubble', className)}
-        color={color}
-      >
-        <div className='ui--Bubble-header'>
-          {icon && <Icon name={icon} size='large' />}
-          {label && <div className='text'>{label}</div>}
-        </div>
-        <div className='ui--Bubble-children'>
-          {children}
-        </div>
-      </SUILabel>
-    );
-  }
+function Bubble ({ children, className, color, icon, label }: Props): React.ReactElement<Props> {
+  return (
+    <SUILabel
+      className={classes('theme--default', 'ui--Bubble', className)}
+      color={color}
+    >
+      <div className='ui--Bubble-header'>
+        {icon && (
+          <Icon
+            name={icon}
+            size='large'
+          />
+        )}
+        {label && <div className='text'>{label}</div>}
+      </div>
+      <div className='ui--Bubble-children'>
+        {children}
+      </div>
+    </SUILabel>
+  );
 }
 
-export default styled(Bubble)`
+export default React.memo(styled(Bubble)`
   font-weight: normal;
   margin: 0.25rem;
   padding: 0;
@@ -80,4 +80,4 @@ export default styled(Bubble)`
       padding: 0 0 0 0.25rem;
     }
   }
-`;
+`);

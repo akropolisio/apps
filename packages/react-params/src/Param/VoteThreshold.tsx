@@ -1,4 +1,4 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
@@ -6,6 +6,7 @@ import { Props } from '../types';
 
 import React from 'react';
 import { ClassOf } from '@polkadot/types';
+import { registry } from '@polkadot/react-api';
 import { Dropdown } from '@polkadot/react-components';
 import { bnToBn } from '@polkadot/util';
 
@@ -25,38 +26,38 @@ export const textMap = options.reduce((textMap, { text, value }): TextMap => {
   return textMap;
 }, {} as unknown as TextMap);
 
-export default class VoteThresholdParam extends React.PureComponent<Props> {
-  public render (): React.ReactNode {
-    const { className, defaultValue: { value }, isDisabled, isError, label, style, withLabel } = this.props;
-    const defaultValue = value instanceof ClassOf('VoteThreshold')
-      ? value.toNumber()
-      : bnToBn(value as number).toNumber();
-
-    return (
-      <Bare
-        className={className}
-        style={style}
-      >
-        <Dropdown
-          className={isDisabled ? 'full' : 'medium'}
-          defaultValue={defaultValue}
-          isDisabled={isDisabled}
-          isError={isError}
-          label={label}
-          options={options}
-          onChange={this.onChange}
-          withLabel={withLabel}
-        />
-      </Bare>
-    );
-  }
-
-  private onChange = (value: number): void => {
-    const { onChange } = this.props;
-
+function onChange ({ onChange }: Props): (_: number) => void {
+  return function (value: number): void {
     onChange && onChange({
       isValid: true,
       value
     });
-  }
+  };
 }
+
+function VoteThresholdParam (props: Props): React.ReactElement<Props> {
+  const { className, defaultValue: { value }, isDisabled, isError, label, style, withLabel } = props;
+  const defaultValue = value instanceof ClassOf(registry, 'VoteThreshold')
+    ? value.toNumber()
+    : bnToBn(value as number).toNumber();
+
+  return (
+    <Bare
+      className={className}
+      style={style}
+    >
+      <Dropdown
+        className='full'
+        defaultValue={defaultValue}
+        isDisabled={isDisabled}
+        isError={isError}
+        label={label}
+        onChange={onChange(props)}
+        options={options}
+        withLabel={withLabel}
+      />
+    </Bare>
+  );
+}
+
+export default React.memo(VoteThresholdParam);

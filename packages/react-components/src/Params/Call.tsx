@@ -1,44 +1,41 @@
-// Copyright 2017-2019 @polkadot/app-extrinsics authors & contributors
+// Copyright 2017-2020 @polkadot/app-extrinsics authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
 import { SubmittableExtrinsicFunction } from '@polkadot/api/types';
-import { Props as BaseProps } from '@polkadot/react-params/types';
-import { ApiProps } from '@polkadot/react-api/types';
+import { Props } from '@polkadot/react-params/types';
 
 import React from 'react';
-import { withApi } from '@polkadot/react-api';
+import { useApi } from '@polkadot/react-hooks';
 
 import Extrinsic from './Extrinsic';
 
-type Props = ApiProps & BaseProps;
+function Call ({ className, isDisabled, isError, label, onChange, onEnter, onEscape, style, withLabel }: Props): React.ReactElement<Props> {
+  const { api, apiDefaultTx } = useApi();
 
-class Call extends React.PureComponent<Props> {
-  public render (): React.ReactNode {
-    const { apiDefaultTx, api, className, isDisabled, isError, label, onChange, onEnter, style, withLabel } = this.props;
-    const defaultValue = ((): SubmittableExtrinsicFunction<'promise'> => {
-      try {
-        return api.tx.balances.transfer;
-      } catch (error) {
-        return apiDefaultTx;
-      }
-    })();
+  const defaultValue = ((): SubmittableExtrinsicFunction<'promise'> => {
+    try {
+      return api.tx.balances.transfer;
+    } catch (error) {
+      return apiDefaultTx;
+    }
+  })();
 
-    return (
-      <Extrinsic
-        className={className}
-        defaultValue={defaultValue}
-        isDisabled={isDisabled}
-        isError={isError}
-        isPrivate={false}
-        label={label}
-        onChange={onChange}
-        onEnter={onEnter}
-        style={style}
-        withLabel={withLabel}
-      />
-    );
-  }
+  return (
+    <Extrinsic
+      className={className}
+      defaultValue={defaultValue}
+      isDisabled={isDisabled}
+      isError={isError}
+      isPrivate={false}
+      label={label}
+      onChange={onChange}
+      onEnter={onEnter}
+      onEscape={onEscape}
+      style={style}
+      withLabel={withLabel}
+    />
+  );
 }
 
-export default withApi(Call);
+export default React.memo(Call);

@@ -1,4 +1,4 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
@@ -6,7 +6,11 @@ import { TypeDef, TypeDefInfo } from '@polkadot/types/types';
 import { RawParamValue } from './types';
 
 import BN from 'bn.js';
-import { Bytes, U8a, createType, getTypeDef } from '@polkadot/types';
+import { registry } from '@polkadot/react-api';
+import { Bytes, Raw, createType, getTypeDef } from '@polkadot/types';
+import { isBn } from '@polkadot/util';
+
+const warnList: string[] = [];
 
 export default function getInitValue (def: TypeDef): RawParamValue | RawParamValue[] {
   if (def.info === TypeDefInfo.Vec) {
@@ -46,6 +50,13 @@ export default function getInitValue (def: TypeDef): RawParamValue | RawParamVal
     case 'PropIndex':
     case 'ProposalIndex':
     case 'ReferendumIndex':
+    case 'i8':
+    case 'i16':
+    case 'i32':
+    case 'i64':
+    case 'i128':
+    case 'u8':
+    case 'u16':
     case 'u32':
     case 'u64':
     case 'u128':
@@ -69,13 +80,18 @@ export default function getInitValue (def: TypeDef): RawParamValue | RawParamVal
       return 0;
 
     case 'Bytes':
-      return new Bytes();
+      return new Bytes(registry);
 
+    case 'BlockHash':
     case 'CodeHash':
     case 'Hash':
-      return createType('Hash');
+    case 'H256':
+      return createType(registry, 'H256');
 
-    case 'Data':
+    case 'H512':
+      return createType(registry, 'H512');
+
+    case 'Raw':
     case 'Keys':
       return '';
 
@@ -93,20 +109,20 @@ export default function getInitValue (def: TypeDef): RawParamValue | RawParamVal
     case 'SessionKey':
     case 'StorageKey':
     case 'ValidatorId':
-      return void 0;
+      return undefined;
 
     case 'Extrinsic':
-      return new U8a();
+      return new Raw(registry);
 
     case 'Null':
       return null;
 
     default: {
       try {
-        const instance = createType(type as any);
+        const instance = createType(registry, type as any);
         const raw = getTypeDef(instance.toRawType());
 
-        if (instance instanceof BN) {
+        if (isBn(instance)) {
           return new BN(0);
         } else if ([TypeDefInfo.Enum, TypeDefInfo.Struct].includes(raw.info)) {
           return getInitValue(raw);
@@ -115,7 +131,12 @@ export default function getInitValue (def: TypeDef): RawParamValue | RawParamVal
         // console.error(error.message);
       }
 
-      console.error(`Unable to determine default type for ${JSON.stringify(def)}`);
+      // we only want to want once, not spam
+      if (!warnList.includes(type)) {
+        warnList.push(type);
+        console.info(`params: No default value for type ${type} from ${JSON.stringify(def)}, using defaults`);
+      }
+
       return '0x';
     }
   }

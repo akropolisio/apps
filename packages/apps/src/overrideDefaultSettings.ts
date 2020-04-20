@@ -1,12 +1,13 @@
+/* eslint-disable header/header */
 import uiSettings from '@polkadot/ui-settings';
-import { akroNodes } from '@polkadot/app-settings';
+import { AKRO_NODES } from '@polkadot/apps-config/settings/endpoints';
 
-export function overrideDefaultSettings () {
+export function overrideDefaultSettings (): void {
   const settings = uiSettings.get();
 
-  const isDefaultNode = uiSettings.availableNodes.reduce((isDefaultNode, { value }): boolean => {
-    return isDefaultNode || value === settings.apiUrl;
-  }, false);
+  const isDefaultNode = !AKRO_NODES.find(({ value }): boolean => {
+    return value === settings.apiUrl;
+  });
 
-  isDefaultNode && uiSettings.set({ ...settings, apiUrl: akroNodes[0].value });
+  isDefaultNode && uiSettings.set({ ...settings, apiUrl: AKRO_NODES[0].value.toString() });
 }

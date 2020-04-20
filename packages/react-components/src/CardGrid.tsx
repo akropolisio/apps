@@ -1,17 +1,13 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
 import React from 'react';
 import styled from 'styled-components';
 
-import Collection, { CollectionProps, CollectionState, collectionStyles } from './Collection';
+import Collection, { CollectionProps as Props, CollectionState as State, collectionStyles } from './Collection';
 
 import translate from './translate';
-
-type Props = CollectionProps;
-
-type State = CollectionState;
 
 class CardGrid extends Collection<Props, State> {
   public static getDerivedStateFromProps (props: Props): State {
@@ -32,7 +28,7 @@ class CardGrid extends Collection<Props, State> {
 
     return (
       <div className='ui--CardGrid-empty'>
-        <h2>{emptyText || t('No items')}</h2>
+        <h1>{emptyText || t('No items')}</h1>
         {buttons && (
           <div className='ui--CardGrid-buttons'>
             {buttons}
@@ -79,7 +75,7 @@ export default translate(
     .ui--Card,
     .ui--CardGrid-spacer {
       flex: 1 1;
-      min-width: 35rem;
+      min-width: 40rem;
       max-width: 71rem;
     }
 

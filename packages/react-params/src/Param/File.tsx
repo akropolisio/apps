@@ -1,4 +1,4 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
@@ -19,25 +19,24 @@ interface Props extends BareProps {
   withLabel?: boolean;
 }
 
-export default class File extends React.PureComponent<Props> {
-  public render (): React.ReactNode {
-    const { className, isDisabled, isError = false, label, onChange, placeholder, style, withLabel } = this.props;
-
-    return (
-      <Bare
-        className={className}
-        style={style}
-      >
-        <InputFile
-          isDisabled={isDisabled}
-          isError={isError}
-          label={label}
-          onChange={onChange}
-          placeholder={placeholder}
-          withEllipsis
-          withLabel={withLabel}
-        />
-      </Bare>
-    );
-  }
+function File ({ className, isDisabled, isError = false, label, onChange, placeholder, style, withLabel }: Props): React.ReactElement<Props> {
+  return (
+    <Bare
+      className={className}
+      style={style}
+    >
+      <InputFile
+        convertHex
+        isDisabled={isDisabled}
+        isError={isError}
+        label={label}
+        onChange={onChange}
+        placeholder={placeholder}
+        withEllipsis
+        withLabel={withLabel}
+      />
+    </Bare>
+  );
 }
+
+export default React.memo(File);

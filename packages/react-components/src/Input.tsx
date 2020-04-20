@@ -1,10 +1,10 @@
-// Copyright 2017-2019 @polkadot/react-components authors & contributors
+// Copyright 2017-2020 @polkadot/react-components authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
 import { BareProps } from './types';
 
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import SUIInput from 'semantic-ui-react/dist/commonjs/elements/Input/Input';
 import { isUndefined } from '@polkadot/util';
 
@@ -18,18 +18,23 @@ interface Props extends BareProps {
   defaultValue?: any;
   help?: React.ReactNode;
   icon?: React.ReactNode;
+  inputClassName?: string;
   isAction?: boolean;
   isDisabled?: boolean;
+  isDisabledError?: boolean;
   isEditable?: boolean;
   isError?: boolean;
+  isFull?: boolean;
   isHidden?: boolean;
   isReadOnly?: boolean;
   label?: React.ReactNode;
+  labelExtra?: React.ReactNode;
   max?: any;
   maxLength?: number;
   min?: any;
   name?: string;
   onEnter?: () => void;
+  onEscape?: () => void;
   onChange?: (value: string) => void;
   onBlur?: () => void;
   onKeyDown?: (event: React.KeyboardEvent<Element>) => void;
@@ -42,10 +47,6 @@ interface Props extends BareProps {
   value?: any;
   withLabel?: boolean;
   withEllipsis?: boolean;
-}
-
-interface State {
-  name: string;
 }
 
 // Find decimal separator used in current locale
@@ -63,13 +64,13 @@ const KEYS = {
   C: 'c',
   CMD: 'Meta',
   CTRL: 'Control',
+  DECIMAL: getDecimalSeparator(),
   ENTER: 'Enter',
   ESCAPE: 'Escape',
   TAB: 'Tab',
   V: 'v',
   X: 'x',
-  ZERO: '0',
-  DECIMAL: getDecimalSeparator()
+  ZERO: '0'
 };
 
 const KEYS_PRE: any[] = [KEYS.ALT, KEYS.CMD, KEYS.CTRL];
@@ -89,123 +90,121 @@ const isSelectAll = (key: string, isPreKeyDown: boolean): boolean =>
 
 let counter = 0;
 
-export default class Input extends React.PureComponent<Props, State> {
-  public state: State = {
-    name: `in_${counter++}_at_${Date.now()}`
-  };
+function Input ({ autoFocus = false, children, className, defaultValue, help, icon, inputClassName, isAction = false, isDisabled = false, isDisabledError = false, isEditable = false, isError = false, isFull = false, isHidden = false, isReadOnly = false, label, labelExtra, max, maxLength, min, name, onBlur, onChange, onEnter, onEscape, onKeyDown, onKeyUp, onPaste, placeholder, style, tabIndex, type = 'text', value, withEllipsis, withLabel }: Props): React.ReactElement<Props> {
+  const [stateName] = useState(`in_${counter++}_at_${Date.now()}`);
 
-  public render (): React.ReactNode {
-    const { autoFocus = false, children, className, defaultValue, help, icon, isEditable = false, isAction = false, isDisabled = false, isError = false, isHidden = false, isReadOnly = false, label, max, maxLength, min, name, placeholder, style, tabIndex, type = 'text', value, withEllipsis, withLabel } = this.props;
+  const _onBlur = useCallback(
+    () => onBlur && onBlur(),
+    [onBlur]
+  );
 
-    return (
-      <Labelled
-        className={className}
-        help={help}
-        label={label}
-        style={style}
-        withEllipsis={withEllipsis}
-        withLabel={withLabel}
-      >
-        <SUIInput
-          action={isAction}
-          autoFocus={autoFocus}
-          className={
+  const _onChange = useCallback(
+    ({ target }: React.SyntheticEvent<HTMLInputElement>): void =>
+      onChange && onChange((target as HTMLInputElement).value),
+    [onChange]
+  );
+
+  const _onKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>): void =>
+      onKeyDown && onKeyDown(event),
+    [onKeyDown]
+  );
+
+  const _onKeyUp = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>): void => {
+      onKeyUp && onKeyUp(event);
+
+      if (onEnter && event.keyCode === 13) {
+        (event.target as any).blur();
+        onEnter();
+      }
+
+      if (onEscape && event.keyCode === 27) {
+        (event.target as any).blur();
+        onEscape();
+      }
+    },
+    [onEnter, onEscape, onKeyUp]
+  );
+
+  const _onPaste = useCallback(
+    (event: React.ClipboardEvent<HTMLInputElement>): void =>
+      onPaste && onPaste(event),
+    [onPaste]
+  );
+
+  return (
+    <Labelled
+      className={className}
+      help={help}
+      isFull={isFull}
+      label={label}
+      labelExtra={labelExtra}
+      style={style}
+      withEllipsis={withEllipsis}
+      withLabel={withLabel}
+    >
+      <SUIInput
+        action={isAction}
+        autoFocus={autoFocus}
+        className={
+          [
             isEditable
               ? 'ui--Input edit icon'
-              : 'ui--Input'
+              : 'ui--Input',
+            inputClassName || ''
+          ].join(' ')
+        }
+        defaultValue={
+          isUndefined(value)
+            ? (defaultValue || '')
+            : undefined
+        }
+        disabled={isDisabled}
+        error={(!isDisabled && isError) || isDisabledError}
+        hidden={isHidden}
+        iconPosition={
+          isUndefined(icon)
+            ? undefined
+            : 'left'
+        }
+        id={name}
+        max={max}
+        maxLength={maxLength}
+        min={min}
+        name={name || stateName}
+        onBlur={_onBlur}
+        onChange={_onChange}
+        onKeyDown={_onKeyDown}
+        onKeyUp={_onKeyUp}
+        placeholder={placeholder}
+        readOnly={isReadOnly}
+        tabIndex={tabIndex}
+        type={type}
+        value={value}
+      >
+        <input
+          autoCapitalize='off'
+          autoComplete={
+            type === 'password'
+              ? 'new-password'
+              : 'off'
           }
-          defaultValue={
-            isUndefined(value)
-              ? (defaultValue || '')
-              : undefined
-          }
-          disabled={isDisabled}
-          error={!isDisabled && isError}
-          hidden={isHidden}
-          id={name}
-          iconPosition={
-            isUndefined(icon)
-              ? undefined
-              : 'left'
-          }
-          max={max}
-          maxLength={maxLength}
-          min={min}
-          name={name || this.state.name}
-          onBlur={this.onBlur}
-          onChange={this.onChange}
-          onKeyDown={this.onKeyDown}
-          onKeyUp={this.onKeyUp}
-          placeholder={placeholder}
-          readOnly={isReadOnly}
-          tabIndex={tabIndex}
-          type={type}
-          value={value}
-        >
-          <input
-            autoComplete={
-              type === 'password'
-                ? 'new-password'
-                : 'off'
-            }
-            onPaste={this.onPaste}
-          />
-          {
-            isEditable
-              ? <i className='edit icon' />
-              : undefined
-          }
-          {icon}
-          {children}
-        </SUIInput>
-      </Labelled>
-    );
-  }
-
-  private onChange = (event: React.SyntheticEvent<Element>): void => {
-    const { onChange } = this.props;
-    const { value } = event.target as HTMLInputElement;
-
-    onChange && onChange(value);
-  }
-
-  private onKeyDown = (event: React.KeyboardEvent<Element>): void => {
-    const { onKeyDown } = this.props;
-
-    if (onKeyDown) {
-      onKeyDown(event);
-    }
-  }
-
-  private onBlur = (): void => {
-    const { onBlur } = this.props;
-
-    if (onBlur) {
-      onBlur();
-    }
-  }
-
-  private onKeyUp = (event: React.KeyboardEvent<Element>): void => {
-    const { onEnter, onKeyUp } = this.props;
-
-    if (onKeyUp) {
-      onKeyUp(event);
-    }
-
-    if (onEnter && event.keyCode === 13) {
-      (event.target as any).blur();
-      onEnter();
-    }
-  }
-
-  private onPaste = (event: React.ClipboardEvent<Element>): void => {
-    const { onPaste } = this.props;
-
-    if (onPaste) {
-      onPaste(event);
-    }
-  }
+          autoCorrect='off'
+          onPaste={_onPaste}
+          spellCheck={false}
+        />
+        {isEditable && (
+          <i className='edit icon' />
+        )}
+        {icon}
+        {children}
+      </SUIInput>
+    </Labelled>
+  );
 }
+
+export default React.memo(Input);
 
 export {
   isCopy,

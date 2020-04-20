@@ -1,194 +1,219 @@
-// Copyright 2017-2019 @polkadot/apps authors & contributors
+// Copyright 2017-2020 @polkadot/apps authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
-import { BareProps } from '@polkadot/react-components/types';
+import { BareProps as Props } from '@polkadot/react-components/types';
 
-// this is disabled, Chrome + WASM memory leak makes it slow & laggy. If enabled
-// we also need to export the default as hot(Apps) (last line)
-// import { hot } from 'react-hot-loader/root';
-
-import React from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import store from 'store';
 import styled from 'styled-components';
-import { media } from '@polkadot/react-components';
+import { getSystemChainColor } from '@polkadot/apps-config/ui';
+import { defaultColor } from '@polkadot/apps-config/ui/general';
+import GlobalStyle from '@polkadot/react-components/styles';
+import { useApi } from '@polkadot/react-hooks';
 import Signer from '@polkadot/react-signer';
-import settings from '@polkadot/ui-settings';
 
-import ConnectingOverlay from './overlays/Connecting';
 import AccountsOverlay from './overlays/Accounts';
-import { SideBarTransition, SIDEBAR_TRANSITION_DURATION, SIDEBAR_MENU_THRESHOLD } from './constants';
+import ConnectingOverlay from './overlays/Connecting';
+import { SideBarTransition, SIDEBAR_MENU_THRESHOLD } from './constants';
 import Content from './Content';
 import SideBar from './SideBar';
+import WarmUp from './WarmUp';
 
-type Props = BareProps;
-
-interface State {
+interface SidebarState {
   isCollapsed: boolean;
   isMenu: boolean;
-  menuOpen: boolean;
+  isMenuOpen: boolean;
   transition: SideBarTransition;
 }
 
-class Apps extends React.Component<Props, State> {
-  public state: State;
+export const PORTAL_ID = 'portals';
 
-  public constructor (props: Props) {
-    super(props);
+function saveSidebar (sidebar: SidebarState): SidebarState {
+  return store.set('sidebar', sidebar);
+}
 
-    const state = store.get('sidebar') || {};
+function Apps ({ className }: Props): React.ReactElement<Props> {
+  const { systemChain, systemName } = useApi();
+  const [sidebar, setSidebar] = useState<SidebarState>({
+    isCollapsed: false,
+    isMenuOpen: false,
+    transition: SideBarTransition.COLLAPSED,
+    ...store.get('sidebar', {}),
+    isMenu: window.innerWidth < SIDEBAR_MENU_THRESHOLD
+  });
+  const uiHighlight = useMemo(
+    (): string | undefined => getSystemChainColor(systemChain, systemName),
+    [systemChain, systemName]
+  );
 
-    this.state = {
-      isCollapsed: false,
-      menuOpen: false,
-      transition: SideBarTransition.COLLAPSED,
-      ...state
-    };
-  }
+  const _collapse = useCallback(
+    (): void => setSidebar((sidebar: SidebarState) => saveSidebar({ ...sidebar, isCollapsed: !sidebar.isCollapsed })),
+    []
+  );
+  const _toggleMenu = useCallback(
+    (): void => setSidebar((sidebar: SidebarState) => saveSidebar({ ...sidebar, isCollapsed: false, isMenuOpen: true })),
+    []
+  );
+  const _handleResize = useCallback(
+    (): void => {
+      const transition = window.innerWidth < SIDEBAR_MENU_THRESHOLD
+        ? SideBarTransition.MINIMISED_AND_EXPANDED
+        : SideBarTransition.EXPANDED_AND_MAXIMISED;
 
-  public componentDidMount (): void {
-    this.setState({
-      menuOpen: false,
-      isMenu: window.innerWidth < SIDEBAR_MENU_THRESHOLD
-    });
-  }
+      setSidebar((sidebar: SidebarState) => saveSidebar({
+        ...sidebar,
+        isMenu: transition === SideBarTransition.MINIMISED_AND_EXPANDED,
+        isMenuOpen: false,
+        transition
+      }));
+    },
+    []
+  );
 
-  public componentDidUpdate (): void {
-    this.handleMenuTransition();
-  }
+  const { isCollapsed, isMenu, isMenuOpen } = sidebar;
 
-  public render (): React.ReactNode {
-    const { className } = this.props;
-    const { isCollapsed, isMenu, menuOpen } = this.state;
-
-    return (
-      <div className={`apps-Wrapper ${isCollapsed ? 'collapsed' : 'expanded'} ${isMenu && 'fixed'} ${menuOpen && 'menu-open'} theme--${settings.uiTheme} ${className}`}>
-        {this.renderMenuBg()}
+  return (
+    <>
+      <GlobalStyle uiHighlight={defaultColor || uiHighlight} />
+      <div className={`apps--Wrapper ${isCollapsed ? 'collapsed' : 'expanded'} ${isMenu && 'fixed'} ${isMenuOpen && 'menu-open'} theme--default ${className}`}>
+        <div
+          className={`apps--Menu-bg ${isMenuOpen ? 'open' : 'closed'}`}
+          onClick={_handleResize}
+        />
         <SideBar
-          collapse={this.collapse}
-          handleResize={this.handleResize}
-          menuOpen={menuOpen}
+          collapse={_collapse}
+          handleResize={_handleResize}
           isCollapsed={isCollapsed}
-          toggleMenu={this.toggleMenu}
+          isMenuOpen={isMenuOpen}
+          toggleMenu={_toggleMenu}
         />
         <Signer>
           <Content />
         </Signer>
         <ConnectingOverlay />
         <AccountsOverlay />
+        <div id={PORTAL_ID} />
       </div>
-    );
-  }
-
-  private collapse = (): void => {
-    this.setState(({ isCollapsed }: State): Pick<State, never> => ({
-      isCollapsed: !isCollapsed
-    }), (): void => {
-      store.set('sidebar', this.state);
-    });
-  }
-
-  private handleResize = (): void => {
-    const { isMenu, menuOpen } = this.state;
-    const dir = window.innerWidth < SIDEBAR_MENU_THRESHOLD ? 'hide' : 'show';
-
-    if (!menuOpen) {
-      if ((isMenu && dir === 'hide') || (!isMenu && dir === 'show')) {
-        return;
-      }
-    }
-
-    const transition = (dir === 'hide')
-      ? SideBarTransition.MINIMISED_AND_EXPANDED
-      : SideBarTransition.EXPANDED_AND_MAXIMISED;
-
-    this.toggleMenuResize(transition);
-  }
-
-  private handleMenuTransition = (): void => {
-    const { transition } = this.state;
-
-    switch (transition) {
-      case SideBarTransition.MINIMISED_AND_EXPANDED:
-        setTimeout((): void => {
-          this.setState({
-            isMenu: true,
-            isCollapsed: false,
-            transition: SideBarTransition.COLLAPSED
-          });
-        }, SIDEBAR_TRANSITION_DURATION);
-        break;
-
-      case SideBarTransition.EXPANDED_AND_MAXIMISED:
-        setTimeout((): void => {
-          this.setState({
-            isMenu: false,
-            isCollapsed: store.get('sidebar').isCollapsed,
-            transition: SideBarTransition.EXPANDED
-          });
-        }, SIDEBAR_TRANSITION_DURATION);
-        break;
-
-      default:
-        break;
-    }
-  }
-
-  private renderMenuBg = (): React.ReactNode => {
-    return (
-      <div
-        className={`apps-Menu-bg ${this.state.menuOpen ? 'open' : 'closed'}`}
-        onClick={this.handleResize}
-      >
-      </div>
-    );
-  }
-
-  private toggleMenu = (): void => {
-    this.setState({
-      isCollapsed: false,
-      menuOpen: true
-    });
-  }
-
-  private toggleMenuResize = (transition: SideBarTransition): void => {
-    switch (transition) {
-      case SideBarTransition.MINIMISED_AND_EXPANDED:
-        this.setState({
-          isMenu: true,
-          menuOpen: false,
-          transition: transition
-        });
-        break;
-
-      case SideBarTransition.EXPANDED_AND_MAXIMISED:
-        this.setState({
-          menuOpen: false,
-          transition: transition
-        });
-        break;
-
-      default:
-        this.setState(({ isCollapsed }: State): Pick<State, never> => ({
-          isCollapsed: !isCollapsed
-        }));
-        break;
-    }
-  }
+      <WarmUp />
+    </>
+  );
 }
 
-export default styled(Apps)`
+export default React.memo(styled(Apps)`
   align-items: stretch;
   box-sizing: border-box;
   display: flex;
+  flex-direction: row;
   min-height: 100vh;
 
-  header {
-    margin-bottom: 1.4rem;
+  &.theme--default {
+    a.apps--SideBar-Item-NavLink {
+      color: #f5f5f5;
+      display: block;
+      padding: 0.75em 0.75em;
+      white-space: nowrap;
+
+      &:hover {
+        background: #5f5f5f;
+        border-radius: 0.28571429rem 0 0 0.28571429rem;
+        color: #eee;
+        margin-right: 0.25rem;
+      }
+    }
+
+    a.apps--SideBar-Item-NavLink-active {
+      background: #f5f5f5;
+      border-radius: 0.28571429rem 0 0 0.28571429rem;
+      /* border-bottom: 2px solid transparent; */
+      color: #3f3f3f;
+
+      &:hover {
+        background: #f5f5f5;
+        color: #3f3f3f;
+        margin-right: 0;
+      }
+    }
+  }
+
+  &.collapsed .apps--SideBar {
     text-align: center;
 
-    ${media.TABLET`
-      margin-bottom: 2rem;
-   `}
+    .divider {
+      display: none;
+    }
+
+    .apps--SideBar-Item {
+      margin-left: 5px;
+
+      .text {
+        display: none;
+      }
+    }
+
+    .apps--SideBar-logo {
+      .apps--SideBar-logo-inner {
+        margin: auto;
+        padding: 0;
+        width: 3rem;
+
+        img {
+          margin: 0 0.4rem;
+        }
+
+        > div.info {
+          display: none;
+        }
+      }
+    }
+
+    .apps--SideBar-collapse .ui.basic.secondary.button {
+      left: 0.66rem;
+    }
   }
-`;
+
+  &.expanded .apps--SideBar {
+    text-align: left;
+
+    .apps--SideBar-Scroll {
+      padding-left: 0.75rem;
+    }
+  }
+
+  &.fixed {
+    .apps--SideBar-Wrapper {
+      position: absolute;
+      width: 0px;
+
+      .apps--SideBar {
+        padding-left: 0;
+      }
+    }
+  }
+
+  &.menu-open {
+    .apps--SideBar-Wrapper {
+      width: 12rem;
+    }
+  }
+
+  .apps--Menu-bg {
+    background: transparent;
+    height: 100%;
+    left: 0;
+    position: absolute;
+    top: 0;
+    transition: opacity 0.2s;
+    width: 100%;
+    z-index: 299;
+
+    &.closed {
+      opacity: 0;
+      width: 0;
+    }
+
+    &.open {
+      opacity: 1;
+    }
+  }
+`);

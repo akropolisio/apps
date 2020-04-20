@@ -1,4 +1,4 @@
-// Copyright 2017-2019 @polkadot/apps authors & contributors
+// Copyright 2017-2020 @polkadot/apps authors & contributors
 // This software may be modified and distributed under the terms
 // of the Apache-2.0 license. See the LICENSE file for details.
 
@@ -12,26 +12,22 @@ interface Props {
   className?: string;
 }
 
-class TopBar extends React.PureComponent<Props> {
-  public render (): React.ReactNode {
-    const { className } = this.props;
-
-    return (
-      <div className={className}>
-        <div>
-          <NodeName />&nbsp;
-          <NodeVersion label='v' />
-        </div>
-        <div>
-          <Chain />&nbsp;
-          <BestNumber label='#' />
-        </div>
+function TopBar ({ className }: Props): React.ReactElement<Props> {
+  return (
+    <div className={className}>
+      <div>
+        <NodeName />&nbsp;
+        <NodeVersion label='v' />
       </div>
-    );
-  }
+      <div>
+        <Chain />&nbsp;
+        <BestNumber label='#' />
+      </div>
+    </div>
+  );
 }
 
-export default styled(TopBar)`
+export default React.memo(styled(TopBar)`
   background: #f2f2f2;
   font-size: 0.85rem;
   line-height: 1rem;
@@ -57,4 +53,4 @@ export default styled(TopBar)`
       border-width: 0;
     }
   }
-`;
+`);
